@@ -1,4 +1,4 @@
-# Billr - Modern React Invoice Platform
+# Billr - Modern Invoice Platform
 
 > Finally, Get Paid Without the Chase 🚀
 
