@@ -127,7 +127,7 @@ export const GlassmorphismNav: React.FC<GlassmorphismNavProps> = ({ isLoaded }) 
               transition={{ duration: 0.5, delay: 0.4 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-brand-600 to-brand-700 text-white px-6 py-2 rounded-lg font-medium shadow-brand-lg hover:shadow-xl transition-all duration-300"
+              className="bg-gradient-to-r from-brand-600 to-brand-700 text-white px-6 py-2 rounded-xl font-medium shadow-brand-lg hover:shadow-xl transition-all duration-300"
             >
               {currentUser ? 'Sign Out' : 'Sign In'}
             </motion.button>
@@ -194,7 +194,7 @@ export const GlassmorphismNav: React.FC<GlassmorphismNavProps> = ({ isLoaded }) 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.4 }}
-                className="w-full text-left bg-gradient-to-r from-brand-600 to-brand-700 text-white px-3 py-2 rounded-md text-base font-medium"
+                className="w-full text-left bg-gradient-to-r from-brand-600 to-brand-700 text-white px-3 py-2 rounded-xl text-base font-medium"
               >
                 {currentUser ? 'Sign Out' : 'Sign In'}
               </motion.button>

@@ -53,13 +53,232 @@ const staggerChildren = {
 
 // Loading component for lazy loaded routes
 const RouteLoader = React.memo(() => (
-  <div className="fixed inset-0 bg-gradient-to-br from-brand-light via-white to-brand-medium flex items-center justify-center z-50">
-    <div className="text-center w-64 h-40 flex flex-col items-center justify-center">
-      <div className="p-8 rounded-2xl bg-white/90 backdrop-blur-sm border border-brand-medium/20 shadow-lg shadow-brand-medium/10 w-full h-full flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-3 border-brand-medium/30 border-t-brand-dark mb-4 flex-shrink-0"></div>
-        <p className="text-brand-dark/80 font-medium whitespace-nowrap">Loading...</p>
-      </div>
+  <div className="fixed inset-0 bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center z-50 overflow-hidden">
+    {/* Animated background elements */}
+    <div className="absolute inset-0 pointer-events-none">
+      {/* Grid background */}
+      <div className="absolute inset-0 grid-bg opacity-20" />
+      
+      {/* Floating animated orbs */}
+      <motion.div
+        animate={{ 
+          y: [0, -30, 0], 
+          x: [0, 20, 0],
+          scale: [1, 1.1, 1]
+        }}
+        transition={{ 
+          duration: 8, 
+          repeat: Infinity, 
+          ease: "easeInOut" 
+        }}
+        className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-brand-300/40 to-brand-400/20 rounded-full blur-3xl"
+      />
+      
+      <motion.div
+        animate={{ 
+          y: [0, 25, 0], 
+          x: [0, -25, 0],
+          scale: [1, 0.9, 1]
+        }}
+        transition={{ 
+          duration: 6, 
+          repeat: Infinity, 
+          ease: "easeInOut",
+          delay: 1
+        }}
+        className="absolute bottom-32 right-32 w-80 h-80 bg-gradient-to-br from-brand-200/30 to-brand-300/20 rounded-full blur-3xl"
+      />
+      
+      <motion.div
+        animate={{ 
+          y: [0, -15, 0], 
+          x: [0, 15, 0],
+          scale: [1, 1.05, 1]
+        }}
+        transition={{ 
+          duration: 10, 
+          repeat: Infinity, 
+          ease: "easeInOut",
+          delay: 2
+        }}
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-brand-100/30 to-brand-200/20 rounded-full blur-3xl"
+      />
     </div>
+
+    {/* Main loading content */}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="relative z-10 text-center"
+    >
+      {/* Glassmorphic container */}
+      <div className="relative p-12 rounded-3xl bg-white/80 backdrop-blur-xl border border-brand-200/60 shadow-2xl max-w-md mx-auto overflow-hidden">
+        {/* Subtle shine effect */}
+        <motion.div
+          animate={{ x: ['-100%', '100%'] }}
+          transition={{ 
+            duration: 3, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            repeatDelay: 2
+          }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        />
+        
+        {/* Logo */}
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8"
+        >
+          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
+            Billr
+          </h1>
+        </motion.div>
+
+        {/* Advanced loading animation */}
+        <div className="relative mb-8 flex items-center justify-center">
+          {/* Outer rotating ring */}
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 border-4 border-brand-200/30 rounded-full"
+          />
+          
+          {/* Middle ring - counter rotation */}
+          <motion.div
+            animate={{ rotate: -360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute w-16 h-16 border-4 border-transparent border-t-brand-500 border-r-brand-500 rounded-full"
+          />
+          
+          {/* Inner ring */}
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            className="absolute w-12 h-12 border-3 border-transparent border-t-brand-600 rounded-full"
+          />
+          
+          {/* Center animated dot */}
+          <motion.div
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.8, 1, 0.8]
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+            className="absolute w-4 h-4 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full shadow-lg"
+          />
+          
+          {/* Orbiting dots */}
+          {[0, 120, 240].map((rotation, index) => (
+            <motion.div
+              key={index}
+              animate={{ rotate: 360 }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "linear",
+                delay: index * 0.5
+              }}
+              className="absolute w-20 h-20"
+              style={{ transformOrigin: 'center' }}
+            >
+              <div 
+                className="w-2 h-2 bg-gradient-to-r from-brand-400 to-brand-500 rounded-full absolute"
+                style={{ 
+                  top: '10px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                }}
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Loading text with typing effect */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="space-y-3"
+        >
+          <motion.h2
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="text-xl font-semibold text-brand-800"
+          >
+            Preparing Your Experience
+          </motion.h2>
+          
+          <div className="h-6 flex items-center justify-center">
+            <motion.div
+              animate={{ 
+                width: ['20%', '100%', '100%', '20%'],
+              }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut",
+                repeatDelay: 1
+              }}
+              className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-full"
+            />
+          </div>
+          
+          <motion.p
+            animate={{ opacity: [0.6, 0.9, 0.6] }}
+            transition={{ 
+              duration: 2.5, 
+              repeat: Infinity, 
+              ease: "easeInOut",
+              delay: 0.5
+            }}
+            className="text-brand-600 text-sm"
+          >
+            Setting up your dashboard
+          </motion.p>
+        </motion.div>
+
+        {/* Bottom decorative elements */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-400/50 to-transparent" />
+        
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-300/60 rounded-tl-3xl" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-300/60 rounded-tr-3xl" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-300/60 rounded-bl-3xl" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-300/60 rounded-br-3xl" />
+      </div>
+
+      {/* Floating particles */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            y: [0, -100, 0],
+            x: [0, Math.random() * 100 - 50, 0],
+            opacity: [0, 1, 0],
+            scale: [0.5, 1, 0.5]
+          }}
+          transition={{
+            duration: 4 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 3,
+            ease: "easeInOut"
+          }}
+          className="absolute w-1 h-1 bg-brand-400/60 rounded-full"
+          style={{
+            left: `${20 + Math.random() * 60}%`,
+            top: `${60 + Math.random() * 30}%`,
+          }}
+        />
+      ))}
+    </motion.div>
   </div>
 ));
 
@@ -464,9 +683,7 @@ const SolutionSection: React.FC = () => {
   });
 
   return (
-    <section ref={ref} className="py-20 px-4 bg-gradient-to-br from-brand-100/60 via-brand-200/60 to-brand-100/80 relative overflow-hidden backdrop-blur-sm">
-      <OptimizedInteractiveGrid />
-      
+    <section ref={ref} className="py-20 px-4 bg-gradient-to-br from-brand-100/60 via-brand-200/60 to-brand-100/80 relative">
       <div className="max-w-6xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 50 }}

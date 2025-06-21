@@ -17,27 +17,131 @@ import { db, config } from '../firebase';
 // import { functions } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
+export interface LineItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  tax?: number; // percentage
+  total: number; // calculated: quantity * unitPrice * (1 + tax/100)
+}
+
+export interface BusinessInfo {
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  logo?: string; // URL to logo image
+  website?: string;
+}
+
 export interface Invoice {
   id: string;
   number: string;
-  description: string;
-  amount: number;
+  description: string; // Keep for backwards compatibility
+  amount: number; // Keep for backwards compatibility, but will be calculated from line items
+  lineItems: LineItem[];
+  subtotal: number; // calculated from line items
+  taxTotal: number; // calculated from line items
+  total: number; // subtotal + taxTotal
   clientEmail: string;
   clientName?: string;
-  status: 'pending' | 'paid' | 'overdue';
+  clientPhone?: string;
+  businessInfo?: BusinessInfo;
+  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
   createdAt: Timestamp;
+  issueDate: Timestamp;
   dueDate: Timestamp;
   userId: string;
   paymentLink?: string;
   notes?: string;
+  footer?: string;
+  isRecurring?: boolean;
+  recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  recurringEndDate?: Timestamp;
+  recurringId?: string; // Links to recurring template
+  paidAt?: Timestamp;
+  paidMethod?: string;
+}
+
+export interface RecurringInvoice {
+  id: string;
+  templateName: string;
+  lineItems: LineItem[];
+  clientEmail: string;
+  clientName?: string;
+  clientPhone?: string;
+  businessInfo?: BusinessInfo;
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  startDate: Timestamp;
+  endDate?: Timestamp;
+  nextInvoiceDate: Timestamp;
+  autoSend: boolean;
+  isActive: boolean;
+  userId: string;
+  notes?: string;
+  footer?: string;
+  createdAt: Timestamp;
+  lastInvoiceDate?: Timestamp;
+  totalInvoicesSent: number;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  userId: string;
+  createdAt: Timestamp;
+  lastInvoiceDate?: Timestamp;
+  totalInvoicesSent: number;
+  totalAmountInvoiced: number;
+  totalAmountPaid: number;
 }
 
 export interface CreateInvoiceData {
-  description: string;
-  amount: number;
+  title: string; // Unified with scheduled invoices
+  description: string; // Keep for backwards compatibility
+  amount?: number; // Keep for backwards compatibility
+  lineItems: LineItem[];
   clientEmail: string;
   clientName?: string;
+  clientPhone?: string;
+  businessInfo?: BusinessInfo;
+  issueDate?: Date;
   dueDate: Date;
+  notes?: string;
+  footer?: string;
+  status?: 'draft' | 'pending';
+  // Recurring options (for unified interface)
+  isRecurring?: boolean;
+  recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  recurringEndDate?: Date;
+  sendImmediately?: boolean;
+}
+
+export interface CreateRecurringInvoiceData {
+  templateName: string;
+  lineItems: LineItem[];
+  clientEmail: string;
+  clientName?: string;
+  clientPhone?: string;
+  businessInfo?: BusinessInfo;
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  startDate: Date;
+  endDate?: Date;
+  autoSend: boolean;
+  notes?: string;
+  footer?: string;
+}
+
+export interface CreateCustomerData {
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
   notes?: string;
 }
 
@@ -178,19 +282,39 @@ export const useInvoices = () => {
       const invoiceNumber = await generateInvoiceNumber();
       console.log('🔥 Generated invoice number:', invoiceNumber);
       
-      const invoiceData = {
+      const invoiceData: any = {
         number: invoiceNumber,
         description: data.description,
-        amount: data.amount,
+        amount: data.amount || 0,
+        lineItems: data.lineItems,
+        subtotal: data.lineItems.reduce((total, item) => total + item.quantity * item.unitPrice, 0),
+        taxTotal: data.lineItems.reduce((total, item) => total + (item.tax ? item.quantity * item.unitPrice * (item.tax / 100) : 0), 0),
+        total: data.lineItems.reduce((total, item) => total + item.quantity * item.unitPrice * (1 + (item.tax ? item.tax / 100 : 0)), 0),
         clientEmail: data.clientEmail,
         clientName: data.clientName || '',
-        status: 'pending' as const,
+        clientPhone: data.clientPhone || '',
+        businessInfo: data.businessInfo || {},
+        status: data.status || 'pending',
         createdAt: Timestamp.now(),
+        issueDate: data.issueDate ? Timestamp.fromDate(data.issueDate) : Timestamp.fromDate(new Date()),
         dueDate: Timestamp.fromDate(data.dueDate),
         userId: currentUser.uid,
         notes: data.notes || '',
-        paymentLink: `${config.paymentLinkPrefix}/${invoiceNumber}`
+        footer: data.footer || '',
+        paymentLink: `${config.paymentLinkPrefix}/${invoiceNumber}`,
+        isRecurring: data.isRecurring || false
       };
+
+      // Add recurring fields if this is a recurring invoice
+      if (data.isRecurring && data.recurringFrequency) {
+        invoiceData.recurringFrequency = data.recurringFrequency;
+        if (data.recurringEndDate) {
+          invoiceData.recurringEndDate = Timestamp.fromDate(data.recurringEndDate);
+        }
+      }
+
+      // Only include optional fields if they have values (Firestore doesn't allow undefined)
+      // recurringId, paidAt, and paidMethod are only set when relevant
 
       console.log('🔥 Invoice data to save:', invoiceData);
       console.log('🔥 Trying to access collection...');
@@ -236,6 +360,52 @@ export const useInvoices = () => {
     }
   };
 
+  // Edit invoice with full CreateInvoiceData structure
+  const editInvoice = async (invoiceId: string, data: CreateInvoiceData): Promise<void> => {
+    if (!currentUser) throw new Error('User not authenticated');
+
+    try {
+      const invoiceData: any = {
+        description: data.description,
+        amount: data.amount || 0,
+        lineItems: data.lineItems,
+        subtotal: data.lineItems.reduce((total, item) => total + item.quantity * item.unitPrice, 0),
+        taxTotal: data.lineItems.reduce((total, item) => total + (item.tax ? item.quantity * item.unitPrice * (item.tax / 100) : 0), 0),
+        total: data.lineItems.reduce((total, item) => total + item.quantity * item.unitPrice * (1 + (item.tax ? item.tax / 100 : 0)), 0),
+        clientEmail: data.clientEmail,
+        clientName: data.clientName || '',
+        clientPhone: data.clientPhone || '',
+        businessInfo: data.businessInfo || {},
+        issueDate: data.issueDate ? Timestamp.fromDate(data.issueDate) : Timestamp.fromDate(new Date()),
+        dueDate: Timestamp.fromDate(data.dueDate),
+        notes: data.notes || '',
+        footer: data.footer || '',
+        isRecurring: data.isRecurring || false
+      };
+
+      // Add recurring fields if this is a recurring invoice
+      if (data.isRecurring && data.recurringFrequency) {
+        invoiceData.recurringFrequency = data.recurringFrequency;
+        if (data.recurringEndDate) {
+          invoiceData.recurringEndDate = Timestamp.fromDate(data.recurringEndDate);
+        }
+      } else {
+        // Remove recurring fields if not recurring
+        invoiceData.recurringFrequency = null;
+        invoiceData.recurringEndDate = null;
+      }
+
+      const invoiceRef = doc(db, 'invoices', invoiceId);
+      await updateDoc(invoiceRef, invoiceData);
+    } catch (error: any) {
+      console.error('Error editing invoice:', error);
+      if (error.code === 'permission-denied') {
+        throw new Error('Permission denied. Please check Firestore security rules.');
+      }
+      throw new Error(`Failed to edit invoice: ${error.message}`);
+    }
+  };
+
   // Delete invoice
   const deleteInvoice = async (invoiceId: string): Promise<void> => {
     try {
@@ -276,6 +446,7 @@ export const useInvoices = () => {
     error,
     createInvoice,
     updateInvoice,
+    editInvoice,
     deleteInvoice,
     sendInvoiceEmail,
     markAsPaid,

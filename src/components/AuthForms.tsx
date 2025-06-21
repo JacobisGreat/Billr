@@ -11,10 +11,47 @@ import {
   Building, 
   AlertCircle,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles
 } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup' | 'reset';
+
+// Professional loading component that matches the site aesthetic
+const ProfessionalLoader: React.FC = () => (
+  <div className="flex items-center justify-center gap-2">
+    <div className="relative">
+      {/* Outer ring */}
+      <motion.div
+        className="w-5 h-5 border-2 border-brand-200/30 rounded-full"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Inner rotating element */}
+      <motion.div
+        className="absolute inset-0 w-5 h-5 border-2 border-transparent border-t-brand-600 rounded-full"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      />
+      
+      {/* Center dot */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 w-1 h-1 bg-brand-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+    
+    <motion.span
+      className="text-sm font-medium text-brand-700"
+      animate={{ opacity: [0.7, 1, 0.7] }}
+      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+    >
+      Processing...
+    </motion.span>
+  </div>
+);
 
 export const AuthForms: React.FC = () => {
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -106,6 +143,18 @@ export const AuthForms: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full grid-bg opacity-20" />
+        
+        {/* Floating elements for enhanced aesthetic */}
+        <motion.div
+          animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-brand-300/30 to-brand-400/20 rounded-full blur-xl"
+        />
+        <motion.div
+          animate={{ y: [0, 15, 0], x: [0, -15, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute bottom-32 right-32 w-48 h-48 bg-gradient-to-br from-brand-200/40 to-brand-300/30 rounded-full blur-2xl"
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10">
@@ -117,25 +166,25 @@ export const AuthForms: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="backdrop-blur-xl bg-white/80 border border-white/50 rounded-2xl shadow-2xl p-8">
+            <div className="backdrop-blur-xl bg-white/80 border border-brand-200/60 rounded-2xl shadow-brand-lg p-8">
               <div className="text-center mb-8">
                 <motion.div
                   initial={{ scale: 0.9 }}
                   animate={{ scale: 1 }}
                   className="mb-6"
                 >
-                  <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900">
+                  <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900">
                     Billr
                   </h1>
                 </motion.div>
                 
-                <h2 className="text-2xl font-bold text-zinc-900 mb-2">
+                <h2 className="text-2xl font-bold text-brand-800 mb-2">
                   {mode === 'signin' && 'Welcome Back'}
                   {mode === 'signup' && 'Create Account'}
                   {mode === 'reset' && 'Reset Password'}
                 </h2>
                 
-                <p className="text-zinc-600">
+                <p className="text-brand-600">
                   {mode === 'signin' && 'Sign in to access your dashboard'}
                   {mode === 'signup' && 'Start getting paid faster today'}
                   {mode === 'reset' && 'Enter your email to reset your password'}
@@ -170,18 +219,18 @@ export const AuthForms: React.FC = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                  <label className="block text-sm font-medium text-brand-700 mb-2">
                     Email Address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-brand-400" />
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-white/60 border border-white/40 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent backdrop-blur-sm transition-all"
+                      className="w-full pl-10 pr-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 backdrop-blur-sm transition-all"
                       placeholder="Enter your email"
                     />
                   </div>
@@ -189,18 +238,18 @@ export const AuthForms: React.FC = () => {
 
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    <label className="block text-sm font-medium text-brand-700 mb-2">
                       Full Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-brand-400" />
                       <input
                         type="text"
                         name="displayName"
                         value={formData.displayName}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-white/40 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent backdrop-blur-sm transition-all"
+                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 backdrop-blur-sm transition-all"
                         placeholder="Your full name"
                       />
                     </div>
@@ -209,17 +258,17 @@ export const AuthForms: React.FC = () => {
 
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">
-                      Business Name <span className="text-zinc-400">(Optional)</span>
+                    <label className="block text-sm font-medium text-brand-700 mb-2">
+                      Business Name <span className="text-brand-400">(Optional)</span>
                     </label>
                     <div className="relative">
-                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-brand-400" />
                       <input
                         type="text"
                         name="businessName"
                         value={formData.businessName}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-white/40 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent backdrop-blur-sm transition-all"
+                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 backdrop-blur-sm transition-all"
                         placeholder="Your business name"
                       />
                     </div>
@@ -228,24 +277,24 @@ export const AuthForms: React.FC = () => {
 
                 {mode !== 'reset' && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    <label className="block text-sm font-medium text-brand-700 mb-2">
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-brand-400" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-12 py-3 bg-white/60 border border-white/40 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent backdrop-blur-sm transition-all"
+                        className="w-full pl-10 pr-12 py-3 bg-white/60 border border-brand-200/60 rounded-lg text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 backdrop-blur-sm transition-all"
                         placeholder="Enter your password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-brand-400 hover:text-brand-600 transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -255,18 +304,18 @@ export const AuthForms: React.FC = () => {
 
                 {mode === 'signup' && (
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    <label className="block text-sm font-medium text-brand-700 mb-2">
                       Confirm Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-brand-400" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-white/40 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:border-transparent backdrop-blur-sm transition-all"
+                        className="w-full pl-10 pr-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-400 backdrop-blur-sm transition-all"
                         placeholder="Confirm your password"
                       />
                     </div>
@@ -278,30 +327,32 @@ export const AuthForms: React.FC = () => {
                   disabled={loading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-3 bg-gradient-to-r from-zinc-900 to-slate-800 text-white font-semibold rounded-lg shadow-xl hover:shadow-2xl hover:from-slate-800 hover:to-zinc-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 text-white font-semibold rounded-lg shadow-brand-lg hover:shadow-2xl hover:from-brand-700 hover:to-brand-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden"
                 >
-                  {loading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    />
-                  ) : (
-                    <>
-                      {mode === 'signin' && 'Sign In'}
-                      {mode === 'signup' && 'Create Account'}
-                      {mode === 'reset' && 'Send Reset Email'}
-                    </>
-                  )}
+                  {/* Subtle shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="relative flex items-center justify-center gap-2">
+                    {loading ? (
+                      <ProfessionalLoader />
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        {mode === 'signin' && 'Sign In'}
+                        {mode === 'signup' && 'Create Account'}
+                        {mode === 'reset' && 'Send Reset Email'}
+                      </>
+                    )}
+                  </div>
                 </motion.button>
               </form>
 
               {mode !== 'reset' && (
                 <>
                   <div className="my-6 flex items-center">
-                    <div className="flex-1 border-t border-white/40"></div>
-                    <span className="px-4 text-zinc-400 text-sm">or</span>
-                    <div className="flex-1 border-t border-white/40"></div>
+                    <div className="flex-1 border-t border-brand-200/60"></div>
+                    <span className="px-4 text-brand-400 text-sm">or</span>
+                    <div className="flex-1 border-t border-brand-200/60"></div>
                   </div>
 
                   <motion.button
@@ -310,7 +361,7 @@ export const AuthForms: React.FC = () => {
                     disabled={loading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 bg-white/60 border border-white/40 text-zinc-700 font-medium rounded-lg hover:bg-white/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 backdrop-blur-sm"
+                    className="w-full py-3 bg-white/60 border border-brand-200/60 text-brand-700 font-medium rounded-lg hover:bg-white/80 hover:border-brand-300/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 backdrop-blur-sm"
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -326,12 +377,12 @@ export const AuthForms: React.FC = () => {
               <div className="mt-6 text-center space-y-2">
                 {mode === 'signin' && (
                   <>
-                    <p className="text-zinc-600">
+                    <p className="text-brand-600">
                       Don't have an account?{' '}
                       <button
                         type="button"
                         onClick={() => switchMode('signup')}
-                        className="text-zinc-900 hover:text-zinc-700 font-medium transition-colors"
+                        className="text-brand-700 hover:text-brand-800 font-medium transition-colors"
                       >
                         Sign up
                       </button>
@@ -339,7 +390,7 @@ export const AuthForms: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode('reset')}
-                      className="text-zinc-500 hover:text-zinc-700 text-sm transition-colors"
+                      className="text-brand-500 hover:text-brand-700 text-sm transition-colors"
                     >
                       Forgot your password?
                     </button>
@@ -347,12 +398,12 @@ export const AuthForms: React.FC = () => {
                 )}
                 
                 {mode === 'signup' && (
-                  <p className="text-zinc-600">
+                  <p className="text-brand-600">
                     Already have an account?{' '}
                     <button
                       type="button"
                       onClick={() => switchMode('signin')}
-                      className="text-zinc-900 hover:text-zinc-700 font-medium transition-colors"
+                      className="text-brand-700 hover:text-brand-800 font-medium transition-colors"
                     >
                       Sign in
                     </button>
@@ -363,7 +414,7 @@ export const AuthForms: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
-                    className="text-zinc-900 hover:text-zinc-700 font-medium transition-colors flex items-center gap-2 mx-auto"
+                    className="text-brand-700 hover:text-brand-800 font-medium transition-colors flex items-center gap-2 mx-auto"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Sign In

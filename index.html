@@ -20,50 +20,19 @@
     <!-- CSS Custom Properties -->
     <style>
         :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --card: 0 0% 100%;
-            --card-foreground: 222.2 84% 4.9%;
-            --popover: 0 0% 100%;
-            --popover-foreground: 222.2 84% 4.9%;
-            --primary: 262.1 83.3% 57.8%;
-            --primary-foreground: 210 40% 98%;
-            --secondary: 210 40% 96%;
-            --secondary-foreground: 222.2 84% 4.9%;
-            --muted: 210 40% 96%;
-            --muted-foreground: 215.4 16.3% 46.9%;
-            --accent: 210 40% 96%;
-            --accent-foreground: 222.2 84% 4.9%;
-            --destructive: 0 84.2% 60.2%;
-            --destructive-foreground: 210 40% 98%;
-            --border: 214.3 31.8% 91.4%;
-            --input: 214.3 31.8% 91.4%;
-            --ring: 262.1 83.3% 57.8%;
-            --radius: 0.75rem;
-            
-            /* Brand colors */
-            --brand-50: #f0f9ff;
-            --brand-100: #e0f2fe;
-            --brand-200: #bae6fd;
-            --brand-300: #7dd3fc;
-            --brand-400: #38bdf8;
-            --brand-500: #0ea5e9;
-            --brand-600: #0284c7;
-            --brand-700: #0369a1;
-            --brand-800: #075985;
-            --brand-900: #0c4a6e;
+            --brand-50: #ffffff;
+            --brand-100: #B8E2F2;
+            --brand-200: #9DD9F3;
+            --brand-300: #89CFF0;
+            --brand-400: #77C3EC;
+            --brand-500: #5FB3E8;
+            --brand-600: #4A9FD9;
+            --brand-700: #3B8BC7;
+            --brand-800: #2E75B0;
+            --brand-900: #1F5F8B;
         }
         
-        /* Enhanced font definitions */
-        .font-display {
-            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-        }
-        
-        .font-body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-        
-        /* Prevent flash of unstyled content completely */
+        /* Prevent flash of unstyled content */
         html {
             visibility: hidden;
         }
@@ -73,161 +42,403 @@
         }
         
         body {
-            background: linear-gradient(135deg, #B8E2F2 0%, #89CFF0 50%, #77C3EC 100%);
-            color: #2E75B0;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
         
-        /* Enhanced loading state styles */
-        .loading-overlay {
+        /* Revolutionary Loading Screen */
+        .billr-loading-screen {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
+            width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #B8E2F2 0%, #89CFF0 30%, #77C3EC 70%, #5FB3E8 100%);
+            background: linear-gradient(135deg, var(--brand-50) 0%, var(--brand-100) 30%, var(--brand-200) 70%, var(--brand-300) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10000;
-            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(20px);
-        }
-        
-        .loading-overlay.fade-out {
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-        }
-        
-        .loading-content {
-            text-align: center;
-            color: #2E75B0;
-            padding: 4rem 3rem;
-            border-radius: 2rem;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(119, 195, 236, 0.3);
-            box-shadow: 
-                0 25px 50px rgba(119, 195, 236, 0.2),
-                0 0 0 1px rgba(255, 255, 255, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            max-width: 450px;
-            margin: 2rem;
-            position: relative;
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
         }
         
-        .loading-content::before {
+        .billr-loading-screen.fade-out {
+            opacity: 0;
+            transform: scale(0.98);
+            pointer-events: none;
+        }
+        
+        /* Animated Background Elements */
+        .bg-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(119, 195, 236, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(119, 195, 236, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: grid-float 20s linear infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes grid-float {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+        
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+        }
+        
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(155, 217, 243, 0.4), rgba(119, 195, 236, 0.3));
+            top: 10%;
+            left: 15%;
+            animation: float-1 8s ease-in-out infinite;
+        }
+        
+        .orb-2 {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, rgba(184, 226, 242, 0.35), rgba(137, 207, 240, 0.25));
+            bottom: 15%;
+            right: 10%;
+            animation: float-2 6s ease-in-out infinite 1s;
+        }
+        
+        .orb-3 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, rgba(119, 195, 236, 0.2), rgba(95, 179, 232, 0.15));
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: float-3 10s ease-in-out infinite 2s;
+        }
+        
+        @keyframes float-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-30px, -20px) scale(1.1); }
+            66% { transform: translate(20px, 10px) scale(0.9); }
+        }
+        
+        @keyframes float-2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(25px, -15px) scale(1.05); }
+        }
+        
+        @keyframes float-3 {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            25% { transform: translate(-45%, -55%) scale(1.02); }
+            75% { transform: translate(-55%, -45%) scale(0.98); }
+        }
+        
+        /* Main Loading Container */
+        .loading-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            animation: container-entrance 1s ease-out;
+        }
+        
+        @keyframes container-entrance {
+            0% { 
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            100% { 
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        /* Glassmorphic Card */
+        .glass-card {
+            position: relative;
+            padding: 3rem 2.5rem;
+            border-radius: 2rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(119, 195, 236, 0.3);
+            box-shadow: 
+                0 25px 50px rgba(119, 195, 236, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            max-width: 400px;
+            overflow: hidden;
+        }
+        
+        /* Subtle shine effect */
+        .glass-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: shimmer 2s infinite;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shine 3s ease-in-out infinite;
         }
         
-        @keyframes shimmer {
+        @keyframes shine {
             0% { left: -100%; }
+            50% { left: -100%; }
             100% { left: 100%; }
         }
         
-        .loading-logo {
+        /* Corner accents */
+        .corner-accent {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(119, 195, 236, 0.4);
+        }
+        
+        .corner-tl { top: 0; left: 0; border-bottom: none; border-right: none; border-radius: 2rem 0 0 0; }
+        .corner-tr { top: 0; right: 0; border-bottom: none; border-left: none; border-radius: 0 2rem 0 0; }
+        .corner-bl { bottom: 0; left: 0; border-top: none; border-right: none; border-radius: 0 0 0 2rem; }
+        .corner-br { bottom: 0; right: 0; border-top: none; border-left: none; border-radius: 0 0 2rem 0; }
+        
+        /* Billr Logo */
+        .billr-logo {
             font-family: 'Outfit', system-ui, sans-serif;
-            font-size: 4rem;
-            font-weight: 800;
+            font-size: 3.5rem;
+            font-weight: 900;
             margin-bottom: 2rem;
-            background: linear-gradient(135deg, #2E75B0, #77C3EC, #5FB3E8, #89CFF0);
+            background: linear-gradient(135deg, var(--brand-800), var(--brand-600), var(--brand-700));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            background-size: 300% 300%;
-            animation: gradient-flow 4s ease infinite;
+            background-size: 200% 200%;
+            animation: gradient-shift 4s ease infinite;
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
         
-        @keyframes gradient-flow {
+        @keyframes gradient-shift {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
         }
         
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(119, 195, 236, 0.2);
-            border-top: 4px solid #77C3EC;
-            border-radius: 50%;
-            animation: spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        /* Advanced Spinner System */
+        .spinner-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
             margin: 0 auto 2rem;
-            filter: drop-shadow(0 0 12px rgba(119, 195, 236, 0.4));
-            position: relative;
-            z-index: 1;
         }
         
-        .loading-spinner::after {
-            content: '';
+        .spinner-ring {
             position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
             border-radius: 50%;
-            border: 2px solid transparent;
-            border-top: 2px solid rgba(119, 195, 236, 0.6);
-            animation: spin 0.8s linear infinite reverse;
+            border: 3px solid transparent;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .ring-outer {
+            width: 80px;
+            height: 80px;
+            border-color: rgba(119, 195, 236, 0.2);
+            animation: spin-slow 3s linear infinite;
         }
         
+        .ring-middle {
+            width: 64px;
+            height: 64px;
+            top: 8px;
+            left: 8px;
+            border-top-color: var(--brand-500);
+            border-right-color: var(--brand-500);
+            animation: spin-medium 2s linear infinite reverse;
+        }
+        
+        .ring-inner {
+            width: 48px;
+            height: 48px;
+            top: 16px;
+            left: 16px;
+            border-top-color: var(--brand-600);
+            animation: spin-fast 1.5s linear infinite;
+        }
+        
+        .center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, var(--brand-600), var(--brand-700));
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse-glow 2s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(119, 195, 236, 0.4);
+        }
+        
+        @keyframes spin-slow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-medium { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+        @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+        }
+        
+        /* Orbiting Particles */
+        .orbit-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            transform: translate(-50%, -50%);
+        }
+        
+        .orbit-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: linear-gradient(135deg, var(--brand-400), var(--brand-500));
+            border-radius: 50%;
+            top: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .orbit-1 { animation: orbit 4s linear infinite; }
+        .orbit-2 { animation: orbit 4s linear infinite 1.33s; }
+        .orbit-3 { animation: orbit 4s linear infinite 2.66s; }
+        
+        @keyframes orbit {
+            0% { transform: translateX(-50%) rotate(0deg) translateY(-40px) rotate(0deg); }
+            100% { transform: translateX(-50%) rotate(360deg) translateY(-40px) rotate(-360deg); }
+        }
+        
+        /* Loading Text */
         .loading-text {
-            font-family: 'Inter', system-ui, sans-serif;
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #3B8BC7;
-            opacity: 0.9;
+            margin-bottom: 1rem;
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
         
-        .loading-dots::after {
-            content: '';
-            animation: loading-dots 1.8s infinite;
+        .loading-title {
+            font-family: 'Outfit', system-ui, sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--brand-800);
+            margin-bottom: 0.75rem;
+            animation: text-breathe 2s ease-in-out infinite;
         }
         
-        @keyframes loading-dots {
-            0%, 20% { content: ''; }
-            40% { content: '.'; }
-            60% { content: '..'; }
-            80%, 100% { content: '...'; }
+        @keyframes text-breathe {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
         }
         
-        /* Enhanced grid pattern background */
-        .grid-bg {
-            background-image: 
-                linear-gradient(rgba(119, 195, 236, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(119, 195, 236, 0.08) 1px, transparent 1px);
-            background-size: 60px 60px;
-            animation: grid-move 25s linear infinite;
+        .loading-subtitle {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 0.9rem;
+            color: var(--brand-600);
+            animation: text-fade 2.5s ease-in-out infinite 0.5s;
         }
         
-        @keyframes grid-move {
-            0% { background-position: 0 0; }
-            100% { background-position: 60px 60px; }
+        @keyframes text-fade {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 0.9; }
         }
         
-        /* Hide content until fully loaded */
+        /* Progress Bar */
+        .progress-container {
+            width: 200px;
+            height: 4px;
+            background: rgba(119, 195, 236, 0.2);
+            border-radius: 2px;
+            margin: 1.5rem auto 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand-400), var(--brand-500), var(--brand-600));
+            border-radius: 2px;
+            animation: progress-flow 3s ease-in-out infinite;
+            background-size: 200% 100%;
+        }
+        
+        @keyframes progress-flow {
+            0% { 
+                width: 20%;
+                background-position: 0% 50%;
+            }
+            50% { 
+                width: 100%;
+                background-position: 100% 50%;
+            }
+            100% { 
+                width: 100%;
+                background-position: 0% 50%;
+            }
+        }
+        
+        /* Floating Particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(119, 195, 236, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .particle-1 { top: 20%; left: 20%; animation: particle-float 4s ease-in-out infinite; }
+        .particle-2 { top: 30%; right: 25%; animation: particle-float 5s ease-in-out infinite 1s; }
+        .particle-3 { bottom: 25%; left: 30%; animation: particle-float 6s ease-in-out infinite 2s; }
+        .particle-4 { bottom: 35%; right: 20%; animation: particle-float 4.5s ease-in-out infinite 0.5s; }
+        .particle-5 { top: 60%; left: 15%; animation: particle-float 5.5s ease-in-out infinite 1.5s; }
+        .particle-6 { top: 70%; right: 15%; animation: particle-float 4.2s ease-in-out infinite 2.5s; }
+        
+        @keyframes particle-float {
+            0%, 100% { 
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            50% { 
+                transform: translateY(-100px) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Bottom accent line */
+        .accent-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(119, 195, 236, 0.5), transparent);
+        }
+        
+        /* Hide content until loaded */
         .react-loading #root {
             display: none !important;
         }
         
-        /* Smooth transition states */
+        /* Smooth app transitions */
         .app-loaded {
             opacity: 1;
             transform: translateY(0);
@@ -236,11 +447,11 @@
         
         .app-loading {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
         }
         
         /* Fallback styles */
-        .no-js .loading-overlay {
+        .no-js .billr-loading-screen {
             display: none;
         }
         
@@ -251,27 +462,68 @@
         .no-js html {
             visibility: visible;
         }
-        
-        /* Loading skeleton styles */
-        .skeleton {
-            background: linear-gradient(90deg, #B8E2F2 25%, transparent 37%, #B8E2F2 63%);
-            background-size: 400% 100%;
-            animation: skeleton-loading 1.6s ease infinite;
-        }
-        
-        @keyframes skeleton-loading {
-            0% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
     </style>
 </head>
 <body class="react-loading">
-    <!-- Enhanced Loading Screen -->
-    <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-content">
-            <div class="loading-logo">Billr</div>
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Crafting your experience<span class="loading-dots"></span></div>
+    <!-- Revolutionary Loading Screen -->
+    <div class="billr-loading-screen" id="loading-overlay">
+        <!-- Animated Background -->
+        <div class="bg-grid"></div>
+        
+        <!-- Floating Orbs -->
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+        
+        <!-- Floating Particles -->
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+        <div class="particle particle-4"></div>
+        <div class="particle particle-5"></div>
+        <div class="particle particle-6"></div>
+        
+        <!-- Main Loading Container -->
+        <div class="loading-container">
+            <div class="glass-card">
+                <!-- Corner Accents -->
+                <div class="corner-accent corner-tl"></div>
+                <div class="corner-accent corner-tr"></div>
+                <div class="corner-accent corner-bl"></div>
+                <div class="corner-accent corner-br"></div>
+                
+                <!-- Logo -->
+                <div class="billr-logo">Billr</div>
+                
+                <!-- Advanced Spinner -->
+                <div class="spinner-container">
+                    <div class="spinner-ring ring-outer"></div>
+                    <div class="spinner-ring ring-middle"></div>
+                    <div class="spinner-ring ring-inner"></div>
+                    <div class="center-dot"></div>
+                    
+                    <!-- Orbiting Particles -->
+                    <div class="orbit-container">
+                        <div class="orbit-particle orbit-1"></div>
+                        <div class="orbit-particle orbit-2"></div>
+                        <div class="orbit-particle orbit-3"></div>
+                    </div>
+                </div>
+                
+                <!-- Loading Text -->
+                <div class="loading-text">
+                    <div class="loading-title">Preparing Your Experience</div>
+                    <div class="loading-subtitle">Setting up your dashboard</div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+                
+                <!-- Bottom Accent -->
+                <div class="accent-line"></div>
+            </div>
         </div>
     </div>
     
@@ -293,7 +545,7 @@
     <!-- React App Container -->
     <div id="root" class="app-loading"></div>
     
-    <!-- Enhanced Scripts -->
+    <!-- Enhanced Loading Management Script -->
     <script>
         // Font loading optimization
         (function() {
@@ -308,65 +560,77 @@
             document.head.appendChild(link);
         })();
         
-        // Enhanced loading management
+        // Enhanced loading state management
         let appReady = false;
         let contentLoaded = false;
         let fontsLoaded = false;
+        let minimumLoadTime = false;
         
-        // Check if everything is ready
+        // Minimum loading time for smooth UX (2 seconds)
+        setTimeout(() => {
+            minimumLoadTime = true;
+            checkLoadingComplete();
+        }, 2000);
+        
         function checkLoadingComplete() {
-            if (appReady && contentLoaded && fontsLoaded) {
+            if (appReady && contentLoaded && fontsLoaded && minimumLoadTime) {
                 const loadingOverlay = document.getElementById('loading-overlay');
                 const root = document.getElementById('root');
                 
                 if (loadingOverlay && root) {
-                    // Remove the loading class first
+                    // Remove the loading class
                     document.body.classList.remove('react-loading');
                     
-                    // Add smooth transition
+                    // Start app transition
                     root.classList.remove('app-loading');
                     root.classList.add('app-loaded');
                     
-                    // Fade out loading screen with delay
+                    // Elegant fade out with proper timing
                     setTimeout(() => {
                         loadingOverlay.classList.add('fade-out');
+                        
+                        // Remove loading screen after fade completes
                         setTimeout(() => {
-                            if (loadingOverlay.parentNode) {
+                            if (loadingOverlay && loadingOverlay.parentNode) {
                                 loadingOverlay.remove();
                             }
                             document.body.style.overflow = 'visible';
-                        }, 1000);
-                    }, 800);
+                        }, 1200);
+                    }, 500);
                 }
             }
         }
         
         // Font loading detection
-        document.fonts.ready.then(() => {
-            fontsLoaded = true;
-            checkLoadingComplete();
-        });
-        
-        // Fallback for font loading
-        setTimeout(() => {
-            if (!fontsLoaded) {
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
                 fontsLoaded = true;
                 checkLoadingComplete();
-            }
-        }, 3000);
+            });
+        } else {
+            // Fallback for older browsers
+            setTimeout(() => {
+                fontsLoaded = true;
+                checkLoadingComplete();
+            }, 2000);
+        }
         
-        // DOM content loaded
-        document.addEventListener('DOMContentLoaded', () => {
+        // DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                contentLoaded = true;
+                checkLoadingComplete();
+            });
+        } else {
             contentLoaded = true;
-            checkLoadingComplete();
-        });
+        }
         
-        // All resources loaded
+        // Window load
         window.addEventListener('load', () => {
             setTimeout(() => {
                 appReady = true;
                 checkLoadingComplete();
-            }, 1500); // Minimum loading time for smooth UX
+            }, 800);
         });
         
         // React ready signal
@@ -376,7 +640,9 @@
         });
         
         // Performance tracking
-        window.performance.mark('app-start');
+        if (window.performance) {
+            window.performance.mark('app-start');
+        }
     </script>
     
     <script type="module" src="/src/main.tsx"></script>
