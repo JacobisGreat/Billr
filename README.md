@@ -1,6 +1,6 @@
-# Billr - Modern Invoice Platform
+# Billr - Modern React Invoice Platform
 
-> Finally, Get Paid Without the Chase 🚀
+> Get Paid, Without the Chase 🚀
 
 A cutting-edge React application built with modern design trends and animations that doesn't look like typical AI-generated code. Features glassmorphism, bento-style layouts, interactive animations, and human-centered UX.
 
