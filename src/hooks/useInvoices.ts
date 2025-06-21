@@ -67,6 +67,9 @@ export interface Invoice {
   isActive?: boolean; // Whether the recurring template is active
   paidAt?: Timestamp;
   paidMethod?: string;
+  emailSent?: boolean;
+  emailSentAt?: Timestamp;
+  emailSentBy?: string; // User ID who sent the email
 }
 
 export interface RecurringInvoice {
@@ -299,6 +302,23 @@ export const useInvoices = () => {
     return nextDate;
   };
 
+  // Update invoice email status
+  const updateInvoiceEmailStatus = async (invoiceId: string): Promise<void> => {
+    if (!currentUser) throw new Error('User not authenticated');
+
+    try {
+      const invoiceRef = doc(db, 'invoices', invoiceId);
+      await updateDoc(invoiceRef, {
+        emailSent: true,
+        emailSentAt: Timestamp.now(),
+        emailSentBy: currentUser.uid
+      });
+    } catch (error: any) {
+      console.error('Error updating invoice email status:', error);
+      throw new Error(`Failed to update email status: ${error.message}`);
+    }
+  };
+
   // Create new invoice
   const createInvoice = async (data: CreateInvoiceData): Promise<string> => {
     if (!currentUser) throw new Error('User not authenticated');
@@ -309,6 +329,21 @@ export const useInvoices = () => {
       const invoiceNumber = await generateInvoiceNumber();
       console.log('🔥 Generated invoice number:', invoiceNumber);
       
+      // Smart status detection: Check if due date is in the past
+      const now = new Date();
+      const isOverdue = data.dueDate < now;
+      
+      // Determine invoice status
+      let invoiceStatus = 'pending';
+      if (data.markAsPaid) {
+        invoiceStatus = 'paid';
+      } else if (isOverdue) {
+        invoiceStatus = 'overdue';
+        console.log('🚨 Invoice created with overdue status (due date in past)');
+      } else {
+        invoiceStatus = data.status || 'pending';
+      }
+
       const invoiceData: any = {
         number: invoiceNumber,
         description: data.description,
@@ -321,7 +356,7 @@ export const useInvoices = () => {
         clientName: data.clientName || '',
         clientPhone: data.clientPhone || '',
         businessInfo: data.businessInfo || {},
-        status: data.markAsPaid ? 'paid' : (data.status || 'pending'),
+        status: invoiceStatus,
         createdAt: Timestamp.now(),
         issueDate: data.issueDate ? Timestamp.fromDate(data.issueDate) : Timestamp.fromDate(new Date()),
         dueDate: Timestamp.fromDate(data.dueDate),
@@ -337,12 +372,17 @@ export const useInvoices = () => {
         const now = new Date();
         const dueDate = data.dueDate;
         
-        // If due date is in the past, use that date as paid date
-        // If due date is in the future, use today as paid date
-        if (dueDate <= now) {
+        // Only use due date if it's clearly in the past (at least 1 day ago)
+        // Otherwise use today's date to avoid future paid dates
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(now.getDate() - 1);
+        
+        if (dueDate <= oneDayAgo) {
           invoiceData.paidAt = Timestamp.fromDate(dueDate);
+          console.log('📅 Using due date as paid date:', dueDate, 'for invoice:', data.description);
         } else {
           invoiceData.paidAt = Timestamp.now();
+          console.log('📅 Using today as paid date for invoice:', data.description, 'due date was:', dueDate);
         }
         
         invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
@@ -421,6 +461,25 @@ export const useInvoices = () => {
     try {
       // Get existing invoice to check current payment status
       const existingInvoice = invoices.find(inv => inv.id === invoiceId);
+      
+      // Smart status detection for editing: Check if due date is in the past
+      const now = new Date();
+      const isOverdue = data.dueDate < now;
+      
+      // Determine invoice status for editing
+      let invoiceStatus = existingInvoice?.status || 'pending';
+      if (data.markAsPaid) {
+        invoiceStatus = 'paid';
+      } else if (existingInvoice?.status !== 'paid' && isOverdue) {
+        // Only change to overdue if not already paid and due date is in past
+        invoiceStatus = 'overdue';
+        console.log('🚨 Invoice updated with overdue status (due date in past)');
+      } else if (existingInvoice?.status === 'overdue' && !isOverdue) {
+        // If due date moved to future and was overdue, change back to pending
+        invoiceStatus = 'pending';
+        console.log('📅 Invoice status changed from overdue to pending (due date moved to future)');
+      }
+
       const invoiceData: any = {
         description: data.description,
         amount: data.amount || 0,
@@ -432,6 +491,7 @@ export const useInvoices = () => {
         clientName: data.clientName || '',
         clientPhone: data.clientPhone || '',
         businessInfo: data.businessInfo || {},
+        status: invoiceStatus,
         issueDate: data.issueDate ? Timestamp.fromDate(data.issueDate) : Timestamp.fromDate(new Date()),
         dueDate: Timestamp.fromDate(data.dueDate),
         notes: data.notes || '',
@@ -446,12 +506,17 @@ export const useInvoices = () => {
         
         invoiceData.status = 'paid';
         
-        // If due date is in the past, use that date as paid date
-        // If due date is in the future, use today as paid date
-        if (dueDate <= now) {
+        // Only use due date if it's clearly in the past (at least 1 day ago)
+        // Otherwise use today's date to avoid future paid dates
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(now.getDate() - 1);
+        
+        if (dueDate <= oneDayAgo) {
           invoiceData.paidAt = Timestamp.fromDate(dueDate);
+          console.log('📅 Edit: Using due date as paid date:', dueDate, 'for invoice:', data.description);
         } else {
           invoiceData.paidAt = Timestamp.now();
+          console.log('📅 Edit: Using today as paid date for invoice:', data.description, 'due date was:', dueDate);
         }
         
         invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
@@ -671,6 +736,7 @@ export const useInvoices = () => {
     getRecurringTemplates,
     getInvoicesFromTemplate,
     getTemplatesDueForGeneration,
-    toggleRecurringTemplate
+    toggleRecurringTemplate,
+    updateInvoiceEmailStatus
   };
 }; 

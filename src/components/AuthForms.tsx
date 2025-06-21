@@ -173,7 +173,18 @@ export const AuthForms: React.FC = () => {
                   animate={{ scale: 1 }}
                   className="mb-6"
                 >
-                  <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900">
+                  <img 
+                    src="/images/billr-logo.png" 
+                    alt="Billr Logo" 
+                    className="w-24 h-auto mx-auto drop-shadow-md"
+                    onError={(e) => {
+                      // Fallback to text if image not found
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                  <h1 className="hidden text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900">
                     Billr
                   </h1>
                 </motion.div>

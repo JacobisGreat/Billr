@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 // Your web app's Firebase configuration from environment variables
 const firebaseConfig = {
@@ -41,12 +41,21 @@ export const auth = getAuth(app);
 // Initialize Firestore with better offline handling
 export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_DATABASE_ID || "(default)");
 
-// Configure Firestore for better offline handling
-if (import.meta.env.NODE_ENV === 'development') {
-  console.log('🔥 Firebase initialized in development mode');
-}
-
+// Initialize Functions
 export const functions = getFunctions(app);
+
+// Connect to emulators in development (disabled for production use)
+if (import.meta.env.NODE_ENV === 'development' && import.meta.env.VITE_USE_EMULATOR === 'true') {
+  console.log('🔥 Firebase initialized in development mode with emulator');
+  
+  // Connect to Functions emulator
+  if (!functions._delegate._url) {
+    console.log('🔧 Connecting to Firebase Functions emulator on localhost:5001');
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+  }
+} else {
+  console.log('🚀 Using production Firebase Functions');
+}
 
 // Only initialize analytics in production
 export const analytics = import.meta.env.VITE_ENABLE_ANALYTICS === 'true' ? getAnalytics(app) : null;

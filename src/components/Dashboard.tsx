@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useInvoices, Invoice } from '../hooks/useInvoices';
 import { useNavigate } from 'react-router-dom';
+import { Timestamp } from 'firebase/firestore';
 import { CreateInvoiceModal } from './CreateInvoiceModal';
 import { InvoiceDetails } from './InvoiceDetails';
 import { CustomerManagement } from './CustomerManagement';
@@ -54,7 +55,7 @@ import { emailService, InvoiceEmailData } from '../services/emailService';
 type DashboardTab = 'overview' | 'invoices' | 'customers' | 'schedule';
 
 export const Dashboard: React.FC = () => {
-  const { currentUser, logout, loading: authLoading } = useAuth();
+  const { currentUser, userProfile, logout, loading: authLoading } = useAuth();
   const { 
     invoices, 
     loading: invoicesLoading, 
@@ -65,7 +66,8 @@ export const Dashboard: React.FC = () => {
     generateInvoiceFromTemplate,
     getTemplatesDueForGeneration,
     getRecurringTemplates,
-    getInvoicesFromTemplate
+    getInvoicesFromTemplate,
+    updateInvoiceEmailStatus
   } = useInvoices();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
@@ -102,6 +104,19 @@ export const Dashboard: React.FC = () => {
     status: getInvoiceStatus(invoice)
   }));
   console.log('📊 Dashboard: Total invoices:', invoices.length, 'Regular invoices:', regularInvoices.length, 'Templates:', invoices.filter(i => i.isTemplate).length);
+  
+  // Debug paid invoices and their dates
+  const paidInvoices = regularInvoices.filter(inv => inv.status === 'paid');
+  console.log('💰 Paid invoices debug:', paidInvoices.map(inv => ({
+    id: inv.id,
+    description: inv.description,
+    amount: inv.amount,
+    status: inv.status,
+    dueDate: inv.dueDate.toDate(),
+    createdAt: inv.createdAt.toDate(),
+    paidAt: inv.paidAt?.toDate(),
+    hasPaidAt: !!inv.paidAt
+  })));
   const recurringTemplates = getRecurringTemplates();
   const templatesDue = getTemplatesDueForGeneration();
 
@@ -161,15 +176,56 @@ export const Dashboard: React.FC = () => {
     start: last30Days,
     end: currentDate
   }).map(date => {
-    const dayRevenue = regularInvoices
-      .filter(inv => {
-        if (inv.status !== 'paid' || !inv.paidAt) return false;
-        
-        // Use paidAt date for the graph, not createdAt
+    const dayInvoices = regularInvoices.filter(inv => {
+      // Only include actually paid invoices with valid paidAt dates
+      if (inv.status !== 'paid' || !inv.paidAt) {
+        return false;
+      }
+      
+      try {
         const paidDate = inv.paidAt.toDate();
-        return format(paidDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
-      })
-      .reduce((sum, inv) => sum + inv.amount, 0);
+        const now = new Date();
+        
+        // Safety check: only include reasonable paid dates
+        // Not in the future (beyond today) and not older than 2 years
+        const twoYearsAgo = new Date();
+        twoYearsAgo.setFullYear(now.getFullYear() - 2);
+        
+        if (paidDate > now || paidDate < twoYearsAgo) {
+          console.warn('Unreasonable paidAt date for invoice:', inv.id, {
+            paidAt: paidDate,
+            description: inv.description,
+            amount: inv.amount
+          });
+          return false;
+        }
+        
+        const currentDateStr = format(date, 'yyyy-MM-dd');
+        const paidDateStr = format(paidDate, 'yyyy-MM-dd');
+        
+        return paidDateStr === currentDateStr;
+      } catch (error) {
+        console.warn('Invalid paidAt date for invoice:', inv.id, inv.paidAt);
+        return false;
+      }
+    });
+    
+    const dayRevenue = dayInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+    
+    // Debug logging for the spike day
+    if (dayRevenue > 1000) {
+      console.log('🚨 High revenue day detected:', {
+        date: format(date, 'MMM dd'),
+        revenue: dayRevenue,
+        invoiceCount: dayInvoices.length,
+        invoices: dayInvoices.map(inv => ({
+          id: inv.id,
+          amount: inv.amount,
+          paidAt: inv.paidAt?.toDate(),
+          description: inv.description
+        }))
+      });
+    }
     
     return {
       date: format(date, 'MMM dd'),
@@ -209,6 +265,44 @@ export const Dashboard: React.FC = () => {
       console.log('🚀 Dashboard: Creating invoice with data:', invoiceData);
       const invoiceId = await createInvoice(invoiceData);
       console.log('✅ Dashboard: Invoice created successfully with ID:', invoiceId);
+      
+      // Send email immediately if requested and invoice is not paid
+      if (invoiceData.sendImmediately && !invoiceData.markAsPaid) {
+        try {
+          // Find the created invoice
+          const createdInvoice = invoices.find(inv => inv.id === invoiceId);
+          if (createdInvoice) {
+            await handleSendEmail(createdInvoice);
+          } else {
+            // If invoice not found in current state, create a temporary invoice object for email
+            const tempInvoice: Invoice = {
+              id: invoiceId,
+              number: `INV-${Date.now()}`,
+              description: invoiceData.description,
+              amount: invoiceData.amount || 0,
+              lineItems: invoiceData.lineItems || [],
+              subtotal: 0,
+              taxTotal: 0,
+              total: invoiceData.amount || 0,
+              clientEmail: invoiceData.clientEmail,
+              clientName: invoiceData.clientName,
+              clientPhone: invoiceData.clientPhone,
+              status: 'pending',
+              createdAt: Timestamp.now(),
+              issueDate: Timestamp.now(),
+              dueDate: Timestamp.fromDate(invoiceData.dueDate),
+              userId: currentUser?.uid || '',
+              notes: invoiceData.notes,
+              isRecurring: invoiceData.isRecurring || false
+            };
+            await handleSendEmail(tempInvoice);
+          }
+        } catch (emailError) {
+          console.error('Error sending immediate email:', emailError);
+          alert('Invoice created successfully, but failed to send email. You can send it manually from the invoices list.');
+        }
+      }
+      
       setIsCreateModalOpen(false);
       setEditingInvoice(null);
       return invoiceId;
@@ -254,27 +348,106 @@ export const Dashboard: React.FC = () => {
         dueDate: invoice.dueDate.toDate(),
         paymentLink: paymentLink,
         companyName: import.meta.env.VITE_COMPANY_NAME || 'Your Company',
-        notes: invoice.notes
+        notes: invoice.notes,
+        fromName: userProfile?.displayName || currentUser?.displayName || 'Billr',
+        fromEmail: userProfile?.email || currentUser?.email || undefined
       };
 
-      // Send email based on invoice status
+      // Smart email type detection: Check if due date is in the past
+      const now = new Date();
+      const isOverdue = invoice.dueDate.toDate() < now;
+      
+      console.log('📧 Smart email detection:', {
+        dueDate: invoice.dueDate.toDate(),
+        now: now,
+        isOverdue: isOverdue,
+        status: invoice.status
+      });
+
+      // Send email based on invoice status and due date
       let emailSent = false;
       if (invoice.status === 'paid') {
         emailSent = await emailService.sendPaymentConfirmation(emailData);
-      } else if (invoice.status === 'overdue') {
+      } else if (invoice.status === 'overdue' || isOverdue) {
+        // Send overdue reminder if status is overdue OR if due date has passed
+        console.log('🚨 Sending overdue reminder email (invoice is overdue)');
         emailSent = await emailService.sendPaymentReminder(emailData);
       } else {
+        // Send regular invoice email for future due dates
+        console.log('📬 Sending regular invoice email (invoice not due yet)');
         emailSent = await emailService.sendInvoiceEmail(emailData);
       }
 
       if (emailSent) {
-        alert('Email sent successfully!');
+        // Update invoice email status in Firebase
+        await updateInvoiceEmailStatus(invoice.id);
+        alert('✅ Email sent successfully!');
       } else {
-        alert('Failed to send email. Please check your email configuration.');
+        // Since we know it's a browser/CORS issue, offer mailto fallback immediately
+        const useMailto = window.confirm(
+          `📧 Email sending requires a backend server due to browser security.\n\n` +
+          `Would you like to open your email client to send manually?\n\n` +
+          `Click OK to compose the email with all details pre-filled.`
+        );
+        
+        if (useMailto) {
+          // Generate pre-filled email
+          const subject = encodeURIComponent(`Invoice #${invoice.id} - Payment Request`);
+          const body = encodeURIComponent(`
+Hi ${invoice.clientName || 'there'},
+
+I hope this email finds you well. Here's your invoice for our recent work together:
+
+Invoice #: ${invoice.id}
+Description: ${invoice.description}
+Amount Due: $${invoice.amount.toFixed(2)}
+Due Date: ${invoice.dueDate.toDate().toLocaleDateString()}
+
+${invoice.notes ? `Notes: ${invoice.notes}` : ''}
+
+Thank you for your business! If you have any questions about this invoice, please don't hesitate to reach out.
+
+Best regards,
+${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
+${userProfile?.email || currentUser?.email || ''}
+          `);
+          
+          // Open mailto link
+          window.location.href = `mailto:${invoice.clientEmail}?subject=${subject}&body=${body}`;
+          
+          // Update email status since user will manually send
+          await updateInvoiceEmailStatus(invoice.id);
+        }
       }
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Error sending email. Please try again.');
+      
+      // Immediate mailto fallback for any error
+      const useMailto = window.confirm(
+        `📧 Email API unavailable (browser security restriction).\n\n` +
+        `Open your email client to send manually?\n\n` +
+        `The email will be pre-filled with all invoice details.`
+      );
+      
+      if (useMailto) {
+        const subject = encodeURIComponent(`Invoice #${invoice.id} - Payment Request`);
+        const body = encodeURIComponent(`
+Hi ${invoice.clientName || 'there'},
+
+Here's your invoice:
+
+Invoice #: ${invoice.id}
+Description: ${invoice.description}
+Amount: $${invoice.amount.toFixed(2)}
+Due Date: ${invoice.dueDate.toDate().toLocaleDateString()}
+
+Best regards,
+${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
+        `);
+        
+        window.location.href = `mailto:${invoice.clientEmail}?subject=${subject}&body=${body}`;
+        await updateInvoiceEmailStatus(invoice.id);
+      }
     }
   };
 
@@ -420,7 +593,18 @@ export const Dashboard: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mb-8"
             >
-              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
+              <img 
+                src="/images/billr-logo.png" 
+                alt="Billr Logo" 
+                className="w-32 h-auto mx-auto drop-shadow-lg"
+                onError={(e) => {
+                  // Fallback to text if image not found
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <h1 className="hidden text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
                 Billr
               </h1>
             </motion.div>
@@ -652,7 +836,18 @@ export const Dashboard: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mb-8"
             >
-              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
+              <img 
+                src="/images/billr-logo.png" 
+                alt="Billr Logo" 
+                className="w-32 h-auto mx-auto drop-shadow-lg"
+                onError={(e) => {
+                  // Fallback to text if image not found
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <h1 className="hidden text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
                 Billr
               </h1>
             </motion.div>
@@ -810,9 +1005,22 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center">
               <button
                 onClick={() => navigate('/')}
-                className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900 hover:from-brand-700 hover:via-brand-600 hover:to-brand-800 transition-all duration-300 cursor-pointer"
+                className="flex items-center gap-3 hover:opacity-80 transition-all duration-300 cursor-pointer"
               >
-                Billr
+                <img 
+                  src="/images/billr-logo.png" 
+                  alt="Billr Logo" 
+                  className="h-8 w-auto"
+                  onError={(e) => {
+                    // Fallback to text if image not found
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <span className="hidden text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900">
+                  Billr
+                </span>
               </button>
             </div>
                       <div className="flex items-center space-x-6">
@@ -1337,13 +1545,19 @@ export const Dashboard: React.FC = () => {
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleSendEmail(invoice)}
-                              className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                              title="Send Email"
-                            >
-                              <Mail className="w-4 h-4" />
-                            </button>
+                            {invoice.status !== 'paid' && (
+                              <button
+                                onClick={() => handleSendEmail(invoice)}
+                                className={`p-2 rounded-lg transition-all duration-200 ${
+                                  invoice.emailSent 
+                                    ? 'text-green-600 hover:text-green-800 hover:bg-green-100/40' 
+                                    : 'text-brand-600 hover:text-brand-800 hover:bg-brand-100/40'
+                                }`}
+                                title={invoice.emailSent ? "Email Sent - Send Again" : "Send Email"}
+                              >
+                                <Mail className="w-4 h-4" />
+                              </button>
+                            )}
                             {invoice.status === 'overdue' && (
                               <button
                                 onClick={() => console.log('Send reminder for:', invoice.id)}
@@ -1501,13 +1715,19 @@ export const Dashboard: React.FC = () => {
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
-                        <button
-                          onClick={() => handleSendEmail(invoice)}
-                            className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                          title="Send Email"
-                        >
-                          <Mail className="w-4 h-4" />
-                        </button>
+                        {invoice.status !== 'paid' && (
+                          <button
+                            onClick={() => handleSendEmail(invoice)}
+                            className={`p-2 rounded-lg transition-all duration-200 ${
+                              invoice.emailSent 
+                                ? 'text-green-600 hover:text-green-800 hover:bg-green-100/40' 
+                                : 'text-brand-600 hover:text-brand-800 hover:bg-brand-100/40'
+                            }`}
+                            title={invoice.emailSent ? "Email Sent - Send Again" : "Send Email"}
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
+                        )}
                         {invoice.status === 'overdue' && (
                           <button
                             onClick={() => console.log('Send reminder for:', invoice.id)}
@@ -1572,8 +1792,8 @@ export const Dashboard: React.FC = () => {
       {selectedInvoice && (
         <InvoiceDetails
           invoice={selectedInvoice}
-            isOpen={!!selectedInvoice}
           onClose={() => setSelectedInvoice(null)}
+          onSendEmail={handleSendEmail}
         />
       )}
       </AnimatePresence>

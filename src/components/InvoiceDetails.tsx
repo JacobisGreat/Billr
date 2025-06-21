@@ -6,11 +6,13 @@ import { Invoice } from '../hooks/useInvoices';
 interface InvoiceDetailsProps {
   invoice: Invoice;
   onClose: () => void;
+  onSendEmail?: (invoice: Invoice) => void;
 }
 
 export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({ 
   invoice, 
-  onClose 
+  onClose,
+  onSendEmail
 }) => {
   const [copied, setCopied] = useState(false);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
@@ -63,7 +65,9 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
   };
 
   const handleSendEmail = () => {
-    console.log('Sending email for invoice:', invoice.id);
+    if (onSendEmail) {
+      onSendEmail(invoice);
+    }
   };
 
   const handleDownload = () => {
@@ -331,13 +335,19 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               Download
             </button>
             
-            <button
-              onClick={handleSendEmail}
-              className="px-4 py-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100/40 rounded-lg transition-all duration-200 flex items-center gap-2"
-            >
-              <Mail className="w-4 h-4" />
-              Send Email
-            </button>
+            {invoice.status !== 'paid' && onSendEmail && (
+              <button
+                onClick={handleSendEmail}
+                className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                  invoice.emailSent 
+                    ? 'text-green-600 hover:text-green-800 hover:bg-green-100/40' 
+                    : 'text-brand-600 hover:text-brand-900 hover:bg-brand-100/40'
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                {invoice.emailSent ? 'Email Sent - Send Again' : 'Send Email'}
+              </button>
+            )}
 
             {isOverdue() && (
               <button

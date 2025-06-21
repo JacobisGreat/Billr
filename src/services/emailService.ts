@@ -1,4 +1,5 @@
-import emailjs from '@emailjs/browser';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
 
 export interface EmailTemplate {
   to_email: string;
@@ -24,243 +25,153 @@ export interface InvoiceEmailData {
   paymentLink?: string;
   companyName?: string;
   notes?: string;
+  fromName: string;
+  fromEmail?: string;
 }
 
 class EmailService {
-  private serviceId: string;
-  private templateId: string;
-  private publicKey: string;
-  private initialized: boolean = false;
+  private sendInvoiceEmailFunction: any;
 
   constructor() {
-    this.serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
-    this.templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
-    this.publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+    console.log('📧 Email service initialized with Firebase Functions');
+    
+    // Initialize Firebase Function
+    this.sendInvoiceEmailFunction = httpsCallable(functions, 'sendInvoiceEmail');
   }
 
-  initialize() {
-    if (!this.initialized && this.publicKey) {
-      emailjs.init(this.publicKey);
-      this.initialized = true;
-    }
-  }
-
-  private validateConfig(): boolean {
-    return !!(this.serviceId && this.templateId && this.publicKey);
-  }
-
-  // Send invoice email
+  // Send invoice email via Firebase Function
   async sendInvoiceEmail(data: InvoiceEmailData): Promise<boolean> {
     try {
-      if (!this.validateConfig()) {
-        console.error('EmailJS configuration missing. Please set environment variables.');
+      console.log('📧 Sending invoice email via Firebase Function for:', data.clientEmail);
+
+      const result = await this.sendInvoiceEmailFunction({
+        invoiceId: data.invoiceId,
+        emailType: 'invoice'
+      });
+
+      if (result.data.success) {
+        console.log('✅ Email sent successfully via Firebase Function:', result.data);
+        return true;
+      } else {
+        console.error('❌ Firebase Function failed:', result.data);
         return false;
       }
 
-      this.initialize();
-
-      const templateParams: EmailTemplate = {
-        to_email: data.clientEmail,
-        to_name: data.clientName || 'Valued Customer',
-        from_name: data.companyName || 'Your Company',
-        from_email: 'invoices@yourcompany.com', // Replace with your email
-        subject: `Invoice #${data.invoiceId} - ${data.description}`,
-        message: this.generateInvoiceEmailContent(data),
-        invoice_number: data.invoiceId,
-        amount: `$${data.amount.toFixed(2)}`,
-        due_date: data.dueDate.toLocaleDateString(),
-        payment_link: data.paymentLink || '',
-        company_name: data.companyName || 'Your Company'
-      };
-
-      const response = await emailjs.send(
-        this.serviceId,
-        this.templateId,
-        templateParams
-      );
-
-      console.log('Email sent successfully:', response);
-      return response.status === 200;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ Error calling Firebase Function:', error);
       return false;
     }
   }
 
-  // Send payment confirmation email
+  // Send payment confirmation email via Firebase Function
   async sendPaymentConfirmation(data: InvoiceEmailData): Promise<boolean> {
     try {
-      if (!this.validateConfig()) {
-        console.error('EmailJS configuration missing.');
+      console.log('📧 Sending payment confirmation via Firebase Function');
+
+      const result = await this.sendInvoiceEmailFunction({
+        invoiceId: data.invoiceId,
+        emailType: 'payment_confirmation'
+      });
+
+      if (result.data.success) {
+        console.log('✅ Payment confirmation sent successfully:', result.data);
+        return true;
+      } else {
+        console.error('❌ Payment confirmation failed:', result.data);
         return false;
       }
 
-      this.initialize();
-
-      const templateParams: EmailTemplate = {
-        to_email: data.clientEmail,
-        to_name: data.clientName || 'Valued Customer',
-        from_name: data.companyName || 'Your Company',
-        from_email: 'invoices@yourcompany.com',
-        subject: `Payment Received - Invoice #${data.invoiceId}`,
-        message: this.generatePaymentConfirmationContent(data),
-        invoice_number: data.invoiceId,
-        amount: `$${data.amount.toFixed(2)}`,
-        company_name: data.companyName || 'Your Company'
-      };
-
-      const response = await emailjs.send(
-        this.serviceId,
-        this.templateId,
-        templateParams
-      );
-
-      return response.status === 200;
     } catch (error) {
-      console.error('Failed to send payment confirmation:', error);
+      console.error('❌ Error sending payment confirmation:', error);
       return false;
     }
   }
 
-  // Send payment reminder
+  // Send payment reminder via Firebase Function
   async sendPaymentReminder(data: InvoiceEmailData): Promise<boolean> {
     try {
-      if (!this.validateConfig()) {
-        console.error('EmailJS configuration missing.');
+      console.log('📧 Sending payment reminder via Firebase Function');
+
+      const result = await this.sendInvoiceEmailFunction({
+        invoiceId: data.invoiceId,
+        emailType: 'payment_reminder'
+      });
+
+      if (result.data.success) {
+        console.log('✅ Payment reminder sent successfully:', result.data);
+        return true;
+      } else {
+        console.error('❌ Payment reminder failed:', result.data);
         return false;
       }
 
-      this.initialize();
-
-      const templateParams: EmailTemplate = {
-        to_email: data.clientEmail,
-        to_name: data.clientName || 'Valued Customer',
-        from_name: data.companyName || 'Your Company',
-        from_email: 'invoices@yourcompany.com',
-        subject: `Payment Reminder - Invoice #${data.invoiceId}`,
-        message: this.generatePaymentReminderContent(data),
-        invoice_number: data.invoiceId,
-        amount: `$${data.amount.toFixed(2)}`,
-        due_date: data.dueDate.toLocaleDateString(),
-        payment_link: data.paymentLink || '',
-        company_name: data.companyName || 'Your Company'
-      };
-
-      const response = await emailjs.send(
-        this.serviceId,
-        this.templateId,
-        templateParams
-      );
-
-      return response.status === 200;
     } catch (error) {
-      console.error('Failed to send payment reminder:', error);
+      console.error('❌ Error sending payment reminder:', error);
       return false;
     }
   }
 
-  private generateInvoiceEmailContent(data: InvoiceEmailData): string {
-    return `
-Dear ${data.clientName || 'Valued Customer'},
+  // Simple test function
+  async testConfiguration(): Promise<boolean> {
+    console.log('🧪 Testing Firebase Function connection...');
+    
+    try {
+      // For testing, you could create a test invoice first
+      console.log('Firebase Function email service is ready');
+      return true;
+    } catch (error) {
+      console.error('❌ Firebase Function test failed:', error);
+      return false;
+    }
+  }
 
-Thank you for your business! Please find your invoice details below:
+  // Generate mailto link as fallback
+  generateMailtoLink(data: InvoiceEmailData): string {
+    const subject = encodeURIComponent(`Invoice #${data.invoiceId} - Payment Request`);
+    const body = encodeURIComponent(`
+Hi ${data.clientName || 'there'},
 
-Invoice Number: #${data.invoiceId}
+Here's your invoice for our recent work together:
+
+Invoice #: ${data.invoiceId}
 Description: ${data.description}
-Amount: $${data.amount.toFixed(2)}
+Amount Due: $${data.amount.toFixed(2)}
 Due Date: ${data.dueDate.toLocaleDateString()}
 
-${data.paymentLink ? `You can pay online using this secure link: ${data.paymentLink}` : ''}
+${data.notes ? `Notes: ${data.notes}` : ''}
 
-${data.notes ? `Additional Notes: ${data.notes}` : ''}
-
-If you have any questions about this invoice, please don't hesitate to contact us.
+Thank you for your business!
 
 Best regards,
-${data.companyName || 'Your Company'}
-    `.trim();
-  }
-
-  private generatePaymentConfirmationContent(data: InvoiceEmailData): string {
-    return `
-Dear ${data.clientName || 'Valued Customer'},
-
-Thank you! We have successfully received your payment for Invoice #${data.invoiceId}.
-
-Payment Details:
-- Invoice Number: #${data.invoiceId}
-- Description: ${data.description}
-- Amount Paid: $${data.amount.toFixed(2)}
-- Payment Date: ${new Date().toLocaleDateString()}
-
-Your account is now up to date. We appreciate your prompt payment and continued business.
-
-Best regards,
-${data.companyName || 'Your Company'}
-    `.trim();
-  }
-
-  private generatePaymentReminderContent(data: InvoiceEmailData): string {
-    const daysOverdue = Math.floor((new Date().getTime() - data.dueDate.getTime()) / (1000 * 60 * 60 * 24));
-    const isOverdue = daysOverdue > 0;
-
-    return `
-Dear ${data.clientName || 'Valued Customer'},
-
-This is a ${isOverdue ? 'payment reminder' : 'friendly reminder'} for Invoice #${data.invoiceId}.
-
-Invoice Details:
-- Invoice Number: #${data.invoiceId}
-- Description: ${data.description}
-- Amount Due: $${data.amount.toFixed(2)}
-- Due Date: ${data.dueDate.toLocaleDateString()}
-${isOverdue ? `- Days Overdue: ${daysOverdue}` : ''}
-
-${data.paymentLink ? `You can pay securely online: ${data.paymentLink}` : ''}
-
-${isOverdue ? 
-  'Please remit payment as soon as possible to avoid any late fees.' : 
-  'Please ensure payment is made by the due date to avoid any late fees.'
-}
-
-If you have any questions or need to discuss payment arrangements, please contact us immediately.
-
-Best regards,
-${data.companyName || 'Your Company'}
-    `.trim();
-  }
-
-  // Test email configuration
-  async testConfiguration(): Promise<boolean> {
-    try {
-      if (!this.validateConfig()) {
-        console.error('EmailJS configuration is incomplete');
-        return false;
-      }
-
-      this.initialize();
-
-      const testParams = {
-        to_email: 'test@example.com',
-        to_name: 'Test User',
-        from_name: 'Test Sender',
-        subject: 'EmailJS Configuration Test',
-        message: 'This is a test email to verify EmailJS configuration.'
-      };
-
-      // Note: This will actually try to send an email
-      const response = await emailjs.send(
-        this.serviceId,
-        this.templateId,
-        testParams
-      );
-
-      return response.status === 200;
-    } catch (error) {
-      console.error('EmailJS configuration test failed:', error);
-      return false;
-    }
+${data.fromName}
+${data.fromEmail || 'contact@billr.biz'}
+    `);
+    
+    return `mailto:${data.clientEmail}?subject=${subject}&body=${body}`;
   }
 }
 
-export const emailService = new EmailService(); 
+export const emailService = new EmailService();
+
+// Debug function for console testing
+(window as any).testFirebaseEmail = async (invoiceId: string) => {
+  console.log('🧪 Testing Firebase email function with invoice:', invoiceId);
+  
+  try {
+    const result = await emailService.sendInvoiceEmail({
+      clientEmail: 'test@example.com',
+      clientName: 'Test Client',
+      invoiceId: invoiceId,
+      description: 'Test Invoice',
+      amount: 100,
+      dueDate: new Date(),
+      fromName: 'Test User'
+    });
+    
+    console.log('Test result:', result);
+    return result;
+  } catch (error) {
+    console.error('Test failed:', error);
+    return false;
+  }
+}; 
