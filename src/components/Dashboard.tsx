@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useInvoices, Invoice } from '../hooks/useInvoices';
@@ -47,11 +47,22 @@ import {
 } from 'recharts';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
 
-type DashboardTab = 'overview' | 'invoices' | 'customers' | 'recurring' | 'schedule';
+type DashboardTab = 'overview' | 'invoices' | 'customers' | 'schedule';
 
 export const Dashboard: React.FC = () => {
   const { currentUser, logout, loading: authLoading } = useAuth();
-  const { invoices, loading: invoicesLoading, createInvoice, editInvoice, sendInvoiceEmail } = useInvoices();
+  const { 
+    invoices, 
+    loading: invoicesLoading, 
+    createInvoice, 
+    editInvoice, 
+    deleteInvoice,
+    createCustomerFromInvoice,
+    generateInvoiceFromTemplate,
+    getTemplatesDueForGeneration,
+    getRecurringTemplates,
+    getInvoicesFromTemplate
+  } = useInvoices();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -61,7 +72,12 @@ export const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [showMoreWidgets, setShowMoreWidgets] = useState(false);
 
-  const filteredInvoices = invoices.filter(invoice => {
+  // Get filtered invoices (excluding templates from main view)
+  const regularInvoices = invoices.filter(invoice => !invoice.isTemplate);
+  const recurringTemplates = getRecurringTemplates();
+  const templatesDue = getTemplatesDueForGeneration();
+
+  const filteredInvoices = regularInvoices.filter(invoice => {
     const matchesSearch = (invoice.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
@@ -69,10 +85,10 @@ export const Dashboard: React.FC = () => {
   });
 
   const stats = {
-    totalEarnings: invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
-    pendingAmount: invoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0),
-    totalInvoices: invoices.length,
-    paidInvoices: invoices.filter(i => i.status === 'paid').length,
+    totalEarnings: regularInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
+    pendingAmount: regularInvoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0),
+    totalInvoices: regularInvoices.length,
+    paidInvoices: regularInvoices.filter(i => i.status === 'paid').length,
   };
 
   // Enhanced Analytics
@@ -83,29 +99,29 @@ export const Dashboard: React.FC = () => {
   const last7Days = subDays(currentDate, 7);
 
   const advancedStats = {
-    thisMonthRevenue: invoices.filter(inv => 
+    thisMonthRevenue: regularInvoices.filter(inv => 
       inv.status === 'paid' && inv.createdAt.toDate() >= currentMonth
     ).reduce((sum, inv) => sum + inv.amount, 0),
     
-    lastMonthRevenue: invoices.filter(inv => 
+    lastMonthRevenue: regularInvoices.filter(inv => 
       inv.status === 'paid' && 
       inv.createdAt.toDate() >= lastMonth && 
       inv.createdAt.toDate() < currentMonth
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
-    last30DaysRevenue: invoices.filter(inv => 
+    last30DaysRevenue: regularInvoices.filter(inv => 
       inv.status === 'paid' && inv.createdAt.toDate() >= last30Days
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
-    last7DaysRevenue: invoices.filter(inv => 
+    last7DaysRevenue: regularInvoices.filter(inv => 
       inv.status === 'paid' && inv.createdAt.toDate() >= last7Days
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
-    overdueInvoices: invoices.filter(inv => inv.status === 'overdue').length,
-    overdueAmount: invoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + inv.amount, 0),
+    overdueInvoices: regularInvoices.filter(inv => inv.status === 'overdue').length,
+    overdueAmount: regularInvoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + inv.amount, 0),
 
-    averageInvoiceValue: invoices.length > 0 ? invoices.reduce((sum, inv) => sum + inv.amount, 0) / invoices.length : 0,
-    conversionRate: invoices.length > 0 ? (stats.paidInvoices / invoices.length) * 100 : 0
+    averageInvoiceValue: regularInvoices.length > 0 ? regularInvoices.reduce((sum, inv) => sum + inv.amount, 0) / regularInvoices.length : 0,
+    conversionRate: regularInvoices.length > 0 ? (stats.paidInvoices / regularInvoices.length) * 100 : 0
   };
 
   const monthlyGrowth = advancedStats.lastMonthRevenue > 0 
@@ -117,7 +133,7 @@ export const Dashboard: React.FC = () => {
     start: last30Days,
     end: currentDate
   }).map(date => {
-    const dayRevenue = invoices
+    const dayRevenue = regularInvoices
       .filter(inv => 
         inv.status === 'paid' && 
         format(inv.createdAt.toDate(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
@@ -133,7 +149,7 @@ export const Dashboard: React.FC = () => {
   // Status breakdown for pie chart
   const statusBreakdown = [
     { name: 'Paid', value: stats.paidInvoices, color: '#10b981' },
-    { name: 'Pending', value: invoices.filter(inv => inv.status === 'pending').length, color: '#f59e0b' },
+    { name: 'Pending', value: regularInvoices.filter(inv => inv.status === 'pending').length, color: '#f59e0b' },
     { name: 'Overdue', value: advancedStats.overdueInvoices, color: '#ef4444' }
   ].filter(item => item.value > 0);
 
@@ -141,7 +157,7 @@ export const Dashboard: React.FC = () => {
   const monthlyData = Array.from({ length: 6 }, (_, i) => {
     const monthStart = startOfMonth(subDays(currentDate, i * 30));
     const monthEnd = endOfMonth(monthStart);
-    const monthRevenue = invoices
+    const monthRevenue = regularInvoices
       .filter(inv => 
         inv.status === 'paid' && 
         isWithinInterval(inv.createdAt.toDate(), { start: monthStart, end: monthEnd })
@@ -151,7 +167,7 @@ export const Dashboard: React.FC = () => {
     return {
       month: format(monthStart, 'MMM'),
       revenue: monthRevenue,
-      invoices: invoices.filter(inv => 
+      invoices: regularInvoices.filter(inv => 
         isWithinInterval(inv.createdAt.toDate(), { start: monthStart, end: monthEnd })
       ).length
     };
@@ -197,6 +213,44 @@ export const Dashboard: React.FC = () => {
       console.error('Error sending email:', error);
     }
   };
+
+  const handleCreateCustomer = async (invoiceData: any): Promise<string> => {
+    try {
+      const customerId = await createCustomerFromInvoice(invoiceData);
+      return customerId;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  };
+
+  // Auto-generate invoices from due templates
+  useEffect(() => {
+    const generateDueInvoices = async () => {
+      if (invoicesLoading) return;
+      
+      try {
+        const dueTemplates = getTemplatesDueForGeneration();
+        console.log('Templates due for generation:', dueTemplates.length);
+        
+        for (const template of dueTemplates) {
+          try {
+            console.log(`Generating invoice from template: ${template.templateName}`);
+            await generateInvoiceFromTemplate(template.id);
+          } catch (error) {
+            console.error(`Failed to generate invoice from template ${template.templateName}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for due templates:', error);
+      }
+    };
+
+    // Run once when invoices are loaded
+    if (!invoicesLoading && invoices.length > 0) {
+      generateDueInvoices();
+    }
+  }, [invoicesLoading, invoices.length, getTemplatesDueForGeneration, generateInvoiceFromTemplate]);
 
   if (authLoading) {
     return (
@@ -450,7 +504,6 @@ export const Dashboard: React.FC = () => {
                 { id: 'overview', name: 'Overview', icon: BarChart3 },
                 { id: 'invoices', name: 'Invoices', icon: FileText },
                 { id: 'customers', name: 'Customers', icon: Users },
-                { id: 'recurring', name: 'Recurring', icon: Repeat },
                 { id: 'schedule', name: 'Schedule', icon: Calendar }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -539,7 +592,7 @@ export const Dashboard: React.FC = () => {
                     <p className="text-brand-600 text-sm font-medium">Pending Amount</p>
                     <p className="text-2xl font-bold text-brand-800">${stats.pendingAmount.toFixed(2)}</p>
                     <p className="text-xs text-brand-500 mt-1">
-                      {invoices.filter(inv => inv.status === 'pending').length} invoices
+                      {regularInvoices.filter(inv => inv.status === 'pending').length} invoices
                     </p>
                   </div>
                   <div className="p-3 bg-amber-100 rounded-xl">
@@ -972,7 +1025,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Customers Tab */}
         {activeTab === 'customers' && (
-          <CustomerManagement />
+          <CustomerManagement invoices={regularInvoices} />
         )}
 
         {/* Invoices Tab */}
@@ -1116,25 +1169,6 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Recurring Tab */}
-        {activeTab === 'recurring' && (
-          <div className="text-center py-12">
-            <Repeat className="w-16 h-16 text-brand-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-brand-700 mb-2">
-              Recurring Invoices Coming Soon
-            </h3>
-            <p className="text-brand-600 mb-6">
-              Set up automatic recurring invoices for your regular clients
-            </p>
-            <button
-              disabled
-              className="px-6 py-3 bg-brand-200/60 text-brand-500 rounded-xl cursor-not-allowed"
-            >
-              Feature In Development
-            </button>
-          </div>
-        )}
-
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
           <ScheduleCalendar />
@@ -1147,6 +1181,7 @@ export const Dashboard: React.FC = () => {
           onClose={handleCloseModal}
           onCreateInvoice={handleCreateInvoice}
           onEditInvoice={handleEditInvoice}
+          onCreateCustomer={handleCreateCustomer}
           editingInvoice={editingInvoice}
         />
       )}

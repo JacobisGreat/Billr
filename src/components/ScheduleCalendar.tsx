@@ -17,18 +17,39 @@ export const ScheduleCalendar: React.FC = () => {
   
   const { invoices, loading } = useInvoices();
 
-  // Helper function to get invoices for a specific date (due date)
+  // Helper function to get invoices for a specific date (due date or paid date)
   const getInvoicesForDate = (date: Date): any[] => {
     const dateStr = format(date, 'yyyy-MM-dd');
     return invoices.filter(invoice => {
+      // Show on due date if not paid
       const dueDate = format(invoice.dueDate.toDate(), 'yyyy-MM-dd');
-      return dueDate === dateStr;
+      if (!invoice.paidAt && dueDate === dateStr) {
+        return true;
+      }
+      
+      // Show on paid date if paid
+      if (invoice.paidAt) {
+        const paidDate = format(invoice.paidAt.toDate(), 'yyyy-MM-dd');
+        return paidDate === dateStr;
+      }
+      
+      return false;
     });
   };
 
-  // Helper function to get all dates with invoices
+  // Helper function to get all dates with invoices (due dates for unpaid, paid dates for paid)
   const getInvoiceDates = (): string[] => {
-    return invoices.map(invoice => format(invoice.dueDate.toDate(), 'yyyy-MM-dd'));
+    const dates: string[] = [];
+    invoices.forEach(invoice => {
+      if (invoice.paidAt) {
+        // Use paid date for paid invoices
+        dates.push(format(invoice.paidAt.toDate(), 'yyyy-MM-dd'));
+      } else {
+        // Use due date for unpaid invoices
+        dates.push(format(invoice.dueDate.toDate(), 'yyyy-MM-dd'));
+      }
+    });
+    return dates;
   };
 
   const invoiceDates = getInvoiceDates();
@@ -43,9 +64,23 @@ export const ScheduleCalendar: React.FC = () => {
       const dayInvoices = getInvoicesForDate(date);
       
       if (dayInvoices.length > 0) {
+        const paidInvoices = dayInvoices.filter(inv => inv.paidAt);
+        const unpaidInvoices = dayInvoices.filter(inv => !inv.paidAt);
+        
         return (
           <div className="flex justify-center mt-1 gap-1">
-            <div className="w-2 h-2 bg-brand-600 rounded-full" title={`${dayInvoices.length} invoice(s) due`}></div>
+            {unpaidInvoices.length > 0 && (
+              <div 
+                className="w-2 h-2 bg-amber-500 rounded-full" 
+                title={`${unpaidInvoices.length} invoice(s) due`}
+              />
+            )}
+            {paidInvoices.length > 0 && (
+              <div 
+                className="w-2 h-2 bg-emerald-500 rounded-full" 
+                title={`${paidInvoices.length} invoice(s) paid`}
+              />
+            )}
           </div>
         );
       }
@@ -58,7 +93,14 @@ export const ScheduleCalendar: React.FC = () => {
       const dayInvoices = getInvoicesForDate(date);
       
       if (dayInvoices.length > 0) {
-        return 'has-scheduled-invoice';
+        const paidInvoices = dayInvoices.filter(inv => inv.paidAt);
+        const unpaidInvoices = dayInvoices.filter(inv => !inv.paidAt);
+        
+        if (paidInvoices.length > 0 && unpaidInvoices.length === 0) {
+          return 'has-paid-invoice';
+        } else if (unpaidInvoices.length > 0) {
+          return 'has-due-invoice';
+        }
       }
     }
     return '';
@@ -85,7 +127,7 @@ export const ScheduleCalendar: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-brand-800">Invoice Calendar</h2>
-          <p className="text-brand-600">View your invoice due dates on the calendar</p>
+          <p className="text-brand-600">View invoice due dates and payment dates on the calendar</p>
         </div>
       </div>
 
@@ -157,6 +199,22 @@ export const ScheduleCalendar: React.FC = () => {
               .react-calendar__tile.has-scheduled-invoice:hover {
                 background-color: rgba(59, 130, 246, 0.2);
               }
+              .react-calendar__tile.has-due-invoice {
+                background-color: rgba(245, 158, 11, 0.1);
+                color: #d97706;
+                font-weight: 600;
+              }
+              .react-calendar__tile.has-due-invoice:hover {
+                background-color: rgba(245, 158, 11, 0.2);
+              }
+              .react-calendar__tile.has-paid-invoice {
+                background-color: rgba(16, 185, 129, 0.1);
+                color: #059669;
+                font-weight: 600;
+              }
+              .react-calendar__tile.has-paid-invoice:hover {
+                background-color: rgba(16, 185, 129, 0.2);
+              }
             `}</style>
             
             <Calendar
@@ -184,64 +242,129 @@ export const ScheduleCalendar: React.FC = () => {
             {selectedDateInvoices.length === 0 ? (
               <div className="text-center py-8">
                 <CalendarIcon className="w-12 h-12 text-brand-300 mx-auto mb-3" />
-                <p className="text-brand-600 text-sm">No invoices due on this date</p>
+                <p className="text-brand-600 text-sm">No invoices on this date</p>
               </div>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-brand-700 mb-2 flex items-center gap-1">
-                    <FileText className="w-3 h-3" />
-                    Due Invoices ({selectedDateInvoices.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {selectedDateInvoices.map((invoice) => (
-                      <motion.div
-                        key={invoice.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 bg-brand-50/60 border border-brand-200/40 rounded-lg"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-brand-800 text-sm">
-                              {invoice.description}
-                            </h5>
-                            <p className="text-xs text-brand-600 mt-1">
-                              {invoice.clientName || invoice.clientEmail}
-                            </p>
-                            <p className="text-xs text-brand-500 mt-1">
-                              Invoice #{invoice.number}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {invoice.isRecurring && (
-                              <div className="flex items-center gap-1">
-                                <Repeat className="w-3 h-3 text-brand-500" />
-                                <span className="text-xs text-brand-500">
-                                  {invoice.recurringFrequency || 'Recurring'}
-                                </span>
-                              </div>
-                            )}
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              invoice.status === 'paid' 
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : invoice.status === 'overdue'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {invoice.status}
-                            </span>
+                {(() => {
+                  const paidInvoices = selectedDateInvoices.filter(inv => inv.paidAt);
+                  const unpaidInvoices = selectedDateInvoices.filter(inv => !inv.paidAt);
+
+                  return (
+                    <>
+                      {unpaidInvoices.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-amber-700 mb-2 flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            Due Invoices ({unpaidInvoices.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {unpaidInvoices.map((invoice) => (
+                              <motion.div
+                                key={invoice.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 bg-amber-50/60 border border-amber-200/40 rounded-lg"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <h5 className="font-medium text-brand-800 text-sm">
+                                      {invoice.description}
+                                    </h5>
+                                    <p className="text-xs text-brand-600 mt-1">
+                                      {invoice.clientName || invoice.clientEmail}
+                                    </p>
+                                    <p className="text-xs text-brand-500 mt-1">
+                                      Invoice #{invoice.number}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {invoice.isRecurring && !invoice.isTemplate && (
+                                      <div className="flex items-center gap-1">
+                                        <Repeat className="w-3 h-3 text-brand-500" />
+                                        <span className="text-xs text-brand-500">
+                                          {invoice.recurringFrequency || 'Recurring'}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                      invoice.status === 'paid' 
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : invoice.status === 'overdue'
+                                        ? 'bg-red-100 text-red-700'
+                                        : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                      {invoice.status}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between text-xs text-brand-600">
+                                  <span>${invoice.total?.toFixed(2) || invoice.amount?.toFixed(2)}</span>
+                                  <span>Due: {invoice.dueDate.toDate().toLocaleDateString()}</span>
+                                </div>
+                              </motion.div>
+                            ))}
                           </div>
                         </div>
-                        
-                        <div className="flex items-center justify-between text-xs text-brand-600">
-                          <span>${invoice.amount.toFixed(2)}</span>
-                          <span>Due: {invoice.dueDate.toDate().toLocaleDateString()}</span>
+                      )}
+
+                      {paidInvoices.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-emerald-700 mb-2 flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            Paid Invoices ({paidInvoices.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {paidInvoices.map((invoice) => (
+                              <motion.div
+                                key={invoice.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 bg-emerald-50/60 border border-emerald-200/40 rounded-lg"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1">
+                                    <h5 className="font-medium text-brand-800 text-sm">
+                                      {invoice.description}
+                                    </h5>
+                                    <p className="text-xs text-brand-600 mt-1">
+                                      {invoice.clientName || invoice.clientEmail}
+                                    </p>
+                                    <p className="text-xs text-brand-500 mt-1">
+                                      Invoice #{invoice.number}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {invoice.isRecurring && !invoice.isTemplate && (
+                                      <div className="flex items-center gap-1">
+                                        <Repeat className="w-3 h-3 text-brand-500" />
+                                        <span className="text-xs text-brand-500">
+                                          {invoice.recurringFrequency || 'Recurring'}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-700">
+                                      paid
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between text-xs text-brand-600">
+                                  <span>${invoice.total?.toFixed(2) || invoice.amount?.toFixed(2)}</span>
+                                  <div className="text-right">
+                                    <div>Paid: {invoice.paidAt?.toDate().toLocaleDateString()}</div>
+                                    <div className="text-emerald-600">Method: {invoice.paidMethod}</div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

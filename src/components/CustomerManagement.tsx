@@ -17,6 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useCustomers, Customer, CreateCustomerData } from '../hooks/useCustomers';
+import { Invoice } from '../hooks/useInvoices';
 
 interface CustomerModalProps {
   isOpen: boolean;
@@ -261,7 +262,37 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
   );
 };
 
-export const CustomerManagement: React.FC = () => {
+interface CustomerManagementProps {
+  invoices?: Invoice[];
+}
+
+// Helper function to calculate customer stats from invoices
+const calculateCustomerStats = (customer: Customer, invoices: Invoice[]) => {
+  const customerInvoices = invoices.filter(inv => 
+    inv.clientEmail.toLowerCase() === customer.email.toLowerCase()
+  );
+  
+  const totalInvoices = customerInvoices.length;
+  const totalInvoiced = customerInvoices.reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
+  const totalPaid = customerInvoices
+    .filter(inv => inv.status === 'paid')
+    .reduce((sum, inv) => sum + (inv.total || inv.amount || 0), 0);
+  const totalOwed = totalInvoiced - totalPaid;
+  
+  const lastInvoiceDate = customerInvoices.length > 0 
+    ? Math.max(...customerInvoices.map(inv => inv.createdAt.toDate().getTime()))
+    : null;
+
+  return {
+    totalInvoices,
+    totalInvoiced,
+    totalPaid,
+    totalOwed,
+    lastInvoiceDate: lastInvoiceDate ? new Date(lastInvoiceDate) : null
+  };
+};
+
+export const CustomerManagement: React.FC<CustomerManagementProps> = ({ invoices }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -383,91 +414,105 @@ export const CustomerManagement: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
-            <motion.div
-              key={customer.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-6 bg-white/80 backdrop-blur-xl border border-brand-200/60 rounded-xl shadow-brand hover:shadow-brand-lg transition-all duration-300 group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-brand-800 mb-1">
-                    {customer.name}
-                  </h3>
-                  <p className="text-brand-600 text-sm break-all">
-                    {customer.email}
-                  </p>
-                  {customer.phone && (
-                    <p className="text-brand-600 text-sm mt-1">
-                      {customer.phone}
+          {filteredCustomers.map((customer) => {
+            const stats = calculateCustomerStats(customer, invoices || []);
+            
+            return (
+              <motion.div
+                key={customer.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-6 bg-white/80 backdrop-blur-xl border border-brand-200/60 rounded-xl shadow-brand hover:shadow-brand-lg transition-all duration-300 group"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-brand-800 mb-1">
+                      {customer.name}
+                    </h3>
+                    <p className="text-brand-600 text-sm break-all">
+                      {customer.email}
                     </p>
-                  )}
-                </div>
-                
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleEditCustomer(customer)}
-                    className="p-2 text-brand-400 hover:text-brand-600 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(customer.id)}
-                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-100/40 rounded-lg transition-all duration-200"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {customer.address && (
-                <div className="flex items-center gap-2 text-sm text-brand-600 mb-3">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  <span className="line-clamp-2">{customer.address}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-brand-200/40">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-brand-600 mb-1">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-sm">Invoices</span>
+                    {customer.phone && (
+                      <p className="text-brand-600 text-sm mt-1">
+                        {customer.phone}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-lg font-semibold text-brand-800">
-                    {customer.totalInvoicesSent}
-                  </p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-brand-600 mb-1">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="text-sm">Total</span>
+                  
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditCustomer(customer)}
+                      className="p-2 text-brand-400 hover:text-brand-600 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(customer.id)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-100/40 rounded-lg transition-all duration-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <p className="text-lg font-semibold text-brand-800">
-                    ${customer.totalAmountInvoiced.toFixed(0)}
-                  </p>
                 </div>
-              </div>
 
-              {customer.lastInvoiceDate && (
-                <div className="flex items-center gap-2 text-xs text-brand-500 mt-3 pt-3 border-t border-brand-200/40">
-                  <Calendar className="w-3 h-3" />
-                  <span>
-                    Last invoice: {customer.lastInvoiceDate.toDate().toLocaleDateString()}
-                  </span>
-                </div>
-              )}
+                {customer.address && (
+                  <div className="flex items-center gap-2 text-sm text-brand-600 mb-3">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="line-clamp-2">{customer.address}</span>
+                  </div>
+                )}
 
-              {customer.notes && (
-                <div className="mt-3 pt-3 border-t border-brand-200/40">
-                  <p className="text-sm text-brand-600 line-clamp-2">
-                    {customer.notes}
-                  </p>
+                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-brand-200/40">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-brand-600 mb-1">
+                      <FileText className="w-4 h-4" />
+                      <span className="text-xs">Invoices</span>
+                    </div>
+                    <p className="text-lg font-semibold text-brand-800">
+                      {stats.totalInvoices}
+                    </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-emerald-600 mb-1">
+                      <DollarSign className="w-4 h-4" />
+                      <span className="text-xs">Paid</span>
+                    </div>
+                    <p className="text-lg font-semibold text-emerald-700">
+                      ${stats.totalPaid.toFixed(0)}
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-amber-600 mb-1">
+                      <DollarSign className="w-4 h-4" />
+                      <span className="text-xs">Owed</span>
+                    </div>
+                    <p className="text-lg font-semibold text-amber-700">
+                      ${stats.totalOwed.toFixed(0)}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          ))}
+
+                {stats.lastInvoiceDate && (
+                  <div className="flex items-center gap-2 text-xs text-brand-500 mt-3 pt-3 border-t border-brand-200/40">
+                    <Calendar className="w-3 h-3" />
+                    <span>
+                      Last invoice: {stats.lastInvoiceDate.toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+
+                {customer.notes && (
+                  <div className="mt-3 pt-3 border-t border-brand-200/40">
+                    <p className="text-sm text-brand-600 line-clamp-2">
+                      {customer.notes}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

@@ -60,6 +60,11 @@ export interface Invoice {
   recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   recurringEndDate?: Timestamp;
   recurringId?: string; // Links to recurring template
+  isTemplate?: boolean; // True if this is a recurring template, false if it's a generated invoice
+  templateName?: string; // Name for the recurring template
+  nextInvoiceDate?: Timestamp; // When the next invoice should be generated
+  totalGenerated?: number; // How many invoices have been generated from this template
+  isActive?: boolean; // Whether the recurring template is active
   paidAt?: Timestamp;
   paidMethod?: string;
 }
@@ -114,12 +119,16 @@ export interface CreateInvoiceData {
   dueDate: Date;
   notes?: string;
   footer?: string;
-  status?: 'draft' | 'pending';
+  status?: 'draft' | 'pending' | 'paid';
   // Recurring options (for unified interface)
   isRecurring?: boolean;
   recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   recurringEndDate?: Date;
+  templateName?: string; // For recurring templates
   sendImmediately?: boolean;
+  // New contact and payment options
+  markAsPaid?: boolean;
+  paidMethod?: string;
 }
 
 export interface CreateRecurringInvoiceData {
@@ -268,16 +277,34 @@ export const useInvoices = () => {
     }
   }, [currentUser, authLoading]); // Add authLoading to dependencies
 
+  // Calculate next invoice date based on frequency
+  const calculateNextInvoiceDate = (startDate: Date, frequency: string): Date => {
+    const nextDate = new Date(startDate);
+    
+    switch (frequency) {
+      case 'weekly':
+        nextDate.setDate(nextDate.getDate() + 7);
+        break;
+      case 'monthly':
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        break;
+      case 'quarterly':
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        break;
+      case 'yearly':
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
+    }
+    
+    return nextDate;
+  };
+
   // Create new invoice
   const createInvoice = async (data: CreateInvoiceData): Promise<string> => {
     if (!currentUser) throw new Error('User not authenticated');
 
     try {
       console.log('🔥 Creating invoice with data:', data);
-      console.log('🔥 Current user:', currentUser);
-      console.log('🔥 Firebase db instance:', db);
-      console.log('🔥 Firebase app instance:', db.app);
-      console.log('🔥 Project ID from app:', db.app.options.projectId);
       
       const invoiceNumber = await generateInvoiceNumber();
       console.log('🔥 Generated invoice number:', invoiceNumber);
@@ -294,7 +321,7 @@ export const useInvoices = () => {
         clientName: data.clientName || '',
         clientPhone: data.clientPhone || '',
         businessInfo: data.businessInfo || {},
-        status: data.status || 'pending',
+        status: data.markAsPaid ? 'paid' : (data.status || 'pending'),
         createdAt: Timestamp.now(),
         issueDate: data.issueDate ? Timestamp.fromDate(data.issueDate) : Timestamp.fromDate(new Date()),
         dueDate: Timestamp.fromDate(data.dueDate),
@@ -305,9 +332,21 @@ export const useInvoices = () => {
         isRecurring: data.isRecurring || false
       };
 
-      // Add recurring fields if this is a recurring invoice
+      // Add payment information if marked as paid
+      if (data.markAsPaid) {
+        invoiceData.paidAt = Timestamp.now();
+        invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
+      }
+
+      // Add recurring template fields if this is a recurring invoice
       if (data.isRecurring && data.recurringFrequency) {
+        invoiceData.isTemplate = true;
+        invoiceData.templateName = data.templateName || `${data.description} (${data.recurringFrequency})`;
         invoiceData.recurringFrequency = data.recurringFrequency;
+        invoiceData.nextInvoiceDate = Timestamp.fromDate(calculateNextInvoiceDate(data.dueDate, data.recurringFrequency));
+        invoiceData.totalGenerated = 0;
+        invoiceData.isActive = true;
+        
         if (data.recurringEndDate) {
           invoiceData.recurringEndDate = Timestamp.fromDate(data.recurringEndDate);
         }
@@ -317,20 +356,14 @@ export const useInvoices = () => {
       // recurringId, paidAt, and paidMethod are only set when relevant
 
       console.log('🔥 Invoice data to save:', invoiceData);
-      console.log('🔥 Trying to access collection...');
       
       const collectionRef = collection(db, 'invoices');
-      console.log('🔥 Collection ref created:', collectionRef);
-      
       const docRef = await addDoc(collectionRef, invoiceData);
       console.log('🔥 Invoice created successfully with ID:', docRef.id);
       
       return docRef.id;
     } catch (error: any) {
       console.error('🚨 Full error creating invoice:', error);
-      console.error('🚨 Error code:', error.code);
-      console.error('🚨 Error message:', error.message);
-      console.error('🚨 Error stack:', error.stack);
       
       // Provide specific error messages for common issues
       if (error.code === 'permission-denied') {
@@ -382,6 +415,15 @@ export const useInvoices = () => {
         footer: data.footer || '',
         isRecurring: data.isRecurring || false
       };
+
+      // Handle payment status updates
+      if (data.markAsPaid && !invoiceData.paidAt) {
+        invoiceData.status = 'paid';
+        invoiceData.paidAt = Timestamp.now();
+        invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
+      } else if (!data.markAsPaid && data.status) {
+        invoiceData.status = data.status;
+      }
 
       // Add recurring fields if this is a recurring invoice
       if (data.isRecurring && data.recurringFrequency) {
@@ -440,6 +482,140 @@ export const useInvoices = () => {
     await updateInvoice(invoiceId, { status: 'overdue' });
   };
 
+  // Create customer from invoice data
+  const createCustomerFromInvoice = async (invoiceData: CreateInvoiceData): Promise<string> => {
+    if (!currentUser) throw new Error('User not authenticated');
+
+    try {
+      const customerData = {
+        name: invoiceData.clientName || 'No name provided',
+        email: invoiceData.clientEmail,
+        phone: invoiceData.clientPhone || '',
+        address: '',
+        notes: `Created from invoice: ${invoiceData.description}`,
+        userId: currentUser.uid,
+        createdAt: Timestamp.now(),
+        totalInvoicesSent: 1,
+        totalAmountInvoiced: invoiceData.amount || 0,
+        totalAmountPaid: invoiceData.markAsPaid ? (invoiceData.amount || 0) : 0
+      };
+
+      const docRef = await addDoc(collection(db, 'customers'), customerData);
+      return docRef.id;
+    } catch (error: any) {
+      console.error('Error creating customer:', error);
+      throw new Error(`Failed to create customer: ${error.message}`);
+    }
+  };
+
+  // Generate invoice from recurring template
+  const generateInvoiceFromTemplate = async (templateId: string): Promise<string> => {
+    if (!currentUser) throw new Error('User not authenticated');
+
+    try {
+      // Find the template
+      const template = invoices.find(inv => inv.id === templateId && inv.isTemplate);
+      if (!template) {
+        throw new Error('Recurring template not found');
+      }
+
+      // Check if template is still active
+      if (!template.isActive) {
+        throw new Error('Recurring template is not active');
+      }
+
+      // Check if we've reached the end date
+      if (template.recurringEndDate && new Date() > template.recurringEndDate.toDate()) {
+        // Deactivate the template
+        await updateInvoice(templateId, { isActive: false });
+        throw new Error('Recurring template has reached its end date');
+      }
+
+      // Generate new invoice number
+      const invoiceNumber = await generateInvoiceNumber();
+
+      // Create new invoice from template
+      const newInvoiceData: any = {
+        number: invoiceNumber,
+        description: `${template.description} - ${template.recurringFrequency} #${(template.totalGenerated || 0) + 1}`,
+        amount: template.amount,
+        lineItems: template.lineItems,
+        subtotal: template.subtotal,
+        taxTotal: template.taxTotal,
+        total: template.total,
+        clientEmail: template.clientEmail,
+        clientName: template.clientName || '',
+        clientPhone: template.clientPhone || '',
+        businessInfo: template.businessInfo || {},
+        status: 'pending',
+        createdAt: Timestamp.now(),
+        issueDate: Timestamp.now(),
+        dueDate: template.nextInvoiceDate || Timestamp.now(),
+        userId: currentUser.uid,
+        notes: template.notes || '',
+        footer: template.footer || '',
+        paymentLink: `${config.paymentLinkPrefix}/${invoiceNumber}`,
+        isRecurring: false, // Individual invoices are not recurring
+        isTemplate: false, // This is a generated invoice, not a template
+        recurringId: templateId // Link back to the template
+      };
+
+      // Create the new invoice
+      const docRef = await addDoc(collection(db, 'invoices'), newInvoiceData);
+
+      // Update the template with new next invoice date and count
+      const nextDate = calculateNextInvoiceDate(
+        template.nextInvoiceDate?.toDate() || new Date(),
+        template.recurringFrequency!
+      );
+
+      const templateUpdates: any = {
+        nextInvoiceDate: Timestamp.fromDate(nextDate),
+        totalGenerated: (template.totalGenerated || 0) + 1
+      };
+
+      // Check if we should deactivate after generating this invoice
+      if (template.recurringEndDate && nextDate > template.recurringEndDate.toDate()) {
+        templateUpdates.isActive = false;
+      }
+
+      await updateInvoice(templateId, templateUpdates);
+
+      console.log(`Generated invoice ${invoiceNumber} from template ${template.templateName}`);
+      return docRef.id;
+    } catch (error: any) {
+      console.error('Error generating invoice from template:', error);
+      throw new Error(`Failed to generate invoice: ${error.message}`);
+    }
+  };
+
+  // Get all recurring templates
+  const getRecurringTemplates = (): Invoice[] => {
+    return invoices.filter(invoice => invoice.isTemplate === true);
+  };
+
+  // Get invoices generated from a specific template
+  const getInvoicesFromTemplate = (templateId: string): Invoice[] => {
+    return invoices.filter(invoice => invoice.recurringId === templateId);
+  };
+
+  // Get templates that are due for invoice generation
+  const getTemplatesDueForGeneration = (): Invoice[] => {
+    const now = new Date();
+    return invoices.filter(invoice => 
+      invoice.isTemplate === true &&
+      invoice.isActive === true &&
+      invoice.nextInvoiceDate &&
+      invoice.nextInvoiceDate.toDate() <= now &&
+      (!invoice.recurringEndDate || now <= invoice.recurringEndDate.toDate())
+    );
+  };
+
+  // Toggle recurring template active status
+  const toggleRecurringTemplate = async (templateId: string, isActive: boolean): Promise<void> => {
+    await updateInvoice(templateId, { isActive });
+  };
+
   return {
     invoices,
     loading,
@@ -450,6 +626,12 @@ export const useInvoices = () => {
     deleteInvoice,
     sendInvoiceEmail,
     markAsPaid,
-    markAsOverdue
+    markAsOverdue,
+    createCustomerFromInvoice,
+    generateInvoiceFromTemplate,
+    getRecurringTemplates,
+    getInvoicesFromTemplate,
+    getTemplatesDueForGeneration,
+    toggleRecurringTemplate
   };
 }; 
