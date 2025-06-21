@@ -23,6 +23,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [modalTop, setModalTop] = useState(0);
   const { customers } = useCustomers();
   
   const [formData, setFormData] = useState({
@@ -198,7 +199,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         await onEditInvoice(editingInvoice.id, invoiceData);
       } else {
         console.log('✨ Creating new invoice');
-        await onCreateInvoice(invoiceData);
+      await onCreateInvoice(invoiceData);
       }
       
       // Form will be reset by handleClose
@@ -238,6 +239,13 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Capture the current scroll position when modal opens
+      const currentScrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      
+      // Center the modal in the current viewport
+      setModalTop(currentScrollY + (viewportHeight * 0.1)); // 10% from top of current view
+      
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
@@ -273,7 +281,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
           recurringEndDate: editingInvoice.recurringEndDate 
             ? editingInvoice.recurringEndDate.toDate().toISOString().split('T')[0] 
             : '',
-          sendImmediately: editingInvoice.sendImmediately || false,
+          sendImmediately: (editingInvoice as any).sendImmediately || false,
           markAsPaid: editingInvoice.status === 'paid' || false,
           saveAsContact: false,
           paidMethod: editingInvoice.paidMethod || 'Cash/E-transfer',
@@ -281,17 +289,17 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         });
       } else {
         // Reset form for new invoice
-        const defaultDueDate = new Date();
-        defaultDueDate.setDate(defaultDueDate.getDate() + 30);
-        
-        setFormData({
+      const defaultDueDate = new Date();
+      defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+      
+      setFormData({
           title: '',
-          description: '',
+        description: '',
           lineItems: [{ id: '1', description: '', quantity: 1, unitPrice: 0, total: 0 }],
-          clientEmail: '',
-          clientName: '',
+        clientEmail: '',
+        clientName: '',
           clientPhone: '',
-          dueDate: defaultDueDate.toISOString().split('T')[0],
+        dueDate: defaultDueDate.toISOString().split('T')[0],
           notes: '',
           isRecurring: false,
           recurringFrequency: 'monthly',
@@ -325,60 +333,66 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-          onClick={handleBackdropClick}
-        >
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ duration: 0.2 }}
-                className="relative w-full bg-white/90 backdrop-blur-xl border border-brand-200/60 rounded-2xl shadow-brand overflow-hidden flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-              >
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={handleBackdropClick}
+          />
+          <div 
+            className="absolute left-1/2 transform -translate-x-1/2 w-full max-w-6xl px-4"
+            style={{ 
+              top: `${modalTop}px`,
+              zIndex: 51
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-h-[85vh] bg-white/90 backdrop-blur-xl border border-brand-200/60 rounded-2xl shadow-brand overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
                 <div className="px-6 py-4 border-b border-brand-200/40 flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-brand-900">
                     {editingInvoice ? 'Edit Invoice' : 'Create Invoice'}
                   </h2>
-                  <button
-                    onClick={handleClose}
-                    disabled={loading}
+                <button
+                  onClick={handleClose}
+                  disabled={loading}
                     className="p-2 text-brand-400 hover:text-brand-600 hover:bg-brand-100/40 rounded-lg transition-all duration-200 disabled:opacity-50"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
                 <form id="invoice-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
                   <div className="px-6 py-6 space-y-6">
-                    <AnimatePresence>
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="p-3 bg-red-50/80 border border-red-200/60 rounded-lg flex items-center gap-2 text-red-700 backdrop-blur-sm"
-                        >
-                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                          <span className="text-sm">{error}</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-3 bg-red-50/80 border border-red-200/60 rounded-lg flex items-center gap-2 text-red-700 backdrop-blur-sm"
+                    >
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm">{error}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                     {/* Title and Due Date */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+                <div>
                         <label className="block text-sm font-medium text-brand-700 mb-2">
                           Title *
-                        </label>
-                        <input
-                          type="text"
+                  </label>
+                    <input
+                      type="text"
                           name="title"
                           value={formData.title}
                           onChange={handleInputChange}
@@ -396,28 +410,28 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                           type="date"
                           name="dueDate"
                           value={formData.dueDate}
-                          onChange={handleInputChange}
-                          required
+                      onChange={handleInputChange}
+                      required
                           className="w-full px-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm text-brand-800"
-                        />
-                      </div>
-                    </div>
+                    />
+                  </div>
+                </div>
 
                     {/* Description */}
-                    <div>
+                <div>
                       <label className="block text-sm font-medium text-brand-700 mb-2">
                         Description *
-                      </label>
+                  </label>
                       <textarea
                         name="description"
                         value={formData.description}
-                        onChange={handleInputChange}
-                        required
+                      onChange={handleInputChange}
+                      required
                         rows={2}
                         placeholder="Invoice description"
                         className="w-full px-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm resize-none text-brand-800 placeholder-brand-400"
-                      />
-                    </div>
+                    />
+                  </div>
 
                     {/* Client Information */}
                     <div className="border border-brand-200/60 rounded-xl p-4 bg-gradient-to-r from-brand-50/40 to-brand-100/40">
@@ -442,34 +456,34 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             </option>
                           ))}
                         </select>
-                      </div>
-                      
+                </div>
+
                       {/* Manual Entry */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
+                <div>
                           <label className="block text-sm font-medium text-brand-700 mb-2">
                             Email Address *
-                          </label>
-                          <input
-                            type="email"
-                            name="clientEmail"
-                            value={formData.clientEmail}
-                            onChange={handleInputChange}
-                            required
-                            placeholder="client@example.com"
+                  </label>
+                    <input
+                      type="email"
+                      name="clientEmail"
+                      value={formData.clientEmail}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="client@example.com"
                             className="w-full px-4 py-3 bg-white/80 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm text-brand-800 placeholder-brand-400"
-                          />
-                        </div>
+                    />
+                </div>
 
-                        <div>
+                <div>
                           <label className="block text-sm font-medium text-brand-700 mb-2">
                             Full Name
-                          </label>
-                          <input
-                            type="text"
-                            name="clientName"
-                            value={formData.clientName}
-                            onChange={handleInputChange}
+                  </label>
+                    <input
+                      type="text"
+                      name="clientName"
+                      value={formData.clientName}
+                      onChange={handleInputChange}
                             placeholder="John Doe"
                             className="w-full px-4 py-3 bg-white/80 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm text-brand-800 placeholder-brand-400"
                           />
@@ -574,7 +588,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                 type="number"
                                 placeholder="1"
                                 min="1"
-                                value={item.quantity}
+                                value={item.quantity === 1 ? '' : item.quantity}
                                 onChange={(e) => handleLineItemChange(index, 'quantity', parseFloat(e.target.value) || 1)}
                                 className="w-full px-3 py-2 bg-white/60 border border-brand-200/60 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                               />
@@ -585,7 +599,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                 placeholder="0.00"
                                 min="0"
                                 step="0.01"
-                                value={item.unitPrice}
+                                value={item.unitPrice === 0 ? '' : item.unitPrice}
                                 onChange={(e) => handleLineItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                                 className="w-full px-3 py-2 bg-white/60 border border-brand-200/60 rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
                               />
@@ -707,26 +721,26 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                           >
                             <div className="p-3 bg-blue-50/60 rounded-lg border border-blue-200/40">
                               <div className="text-xs text-blue-800 mb-1">
-                                <strong>Creates template for future invoices</strong>
+                                <strong>Creates this invoice + sets up automatic recurring</strong>
                               </div>
                               <div className="text-xs text-blue-700">
-                                Each period generates a separate invoice with its own number and tracking.
-                              </div>
-                            </div>
+                                You'll get an immediate invoice plus automatic future invoices based on your schedule.
+                  </div>
+                </div>
 
-                            <div>
+                <div>
                               <label className="block text-sm font-medium text-brand-700 mb-2">
                                 Template Name
-                              </label>
-                              <input
+                  </label>
+                    <input
                                 type="text"
                                 name="templateName"
                                 value={formData.templateName || ''}
-                                onChange={handleInputChange}
+                      onChange={handleInputChange}
                                 placeholder={`${formData.description.trim()} (${formData.recurringFrequency})`}
                                 className="w-full px-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm text-brand-800 placeholder-brand-400"
-                              />
-                            </div>
+                    />
+                  </div>
 
                             <div className="grid grid-cols-2 gap-3">
                               <div>
@@ -747,9 +761,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                   <option value="quarterly">Quarterly</option>
                                   <option value="yearly">Yearly</option>
                                 </select>
-                              </div>
+                </div>
 
-                              <div>
+                <div>
                                 <label className="block text-sm font-medium text-brand-700 mb-2">
                                   End Date (Optional)
                                 </label>
@@ -775,16 +789,16 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-brand-700 mb-2">
                           Notes
-                        </label>
-                        <textarea
-                          name="notes"
-                          value={formData.notes}
-                          onChange={handleInputChange}
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
                           rows={2}
                           placeholder="Additional notes for this invoice..."
                           className="w-full px-4 py-3 bg-white/60 border border-brand-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm resize-none text-brand-800 placeholder-brand-400"
-                        />
-                      </div>
+                  />
+                </div>
 
                       <div className="flex items-end">
                         <div className="flex items-center gap-3">
@@ -824,11 +838,11 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                   >
                     {loading ? (
                       <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                        />
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                      />
                         {editingInvoice ? 'Updating...' : 'Creating...'}
                       </>
                     ) : (
@@ -839,10 +853,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     )}
                   </button>
                 </div>
-              </motion.div>
-            </div>
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

@@ -333,16 +333,16 @@ export const AuthForms: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
                   
                   <div className="relative flex items-center justify-center gap-2">
-                    {loading ? (
+                  {loading ? (
                       <ProfessionalLoader />
-                    ) : (
-                      <>
+                  ) : (
+                    <>
                         <Sparkles className="w-5 h-5" />
-                        {mode === 'signin' && 'Sign In'}
-                        {mode === 'signup' && 'Create Account'}
-                        {mode === 'reset' && 'Send Reset Email'}
-                      </>
-                    )}
+                      {mode === 'signin' && 'Sign In'}
+                      {mode === 'signup' && 'Create Account'}
+                      {mode === 'reset' && 'Send Reset Email'}
+                    </>
+                  )}
                   </div>
                 </motion.button>
               </form>

@@ -15,6 +15,7 @@ const transporter = nodemailer.createTransporter({
 
 // Send invoice email
 exports.sendInvoiceEmail = functions.https.onCall(async (data, context) => {
+  
   // Check if user is authenticated
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');

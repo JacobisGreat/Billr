@@ -339,14 +339,14 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ invoices
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full mx-auto mb-4"
+            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+            className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full mx-auto mb-3"
           />
-          <p className="text-brand-600">Loading customers...</p>
+          <p className="text-brand-600 text-sm">Loading customers...</p>
         </div>
       </div>
     );

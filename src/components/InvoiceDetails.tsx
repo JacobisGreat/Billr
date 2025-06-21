@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Share2, Download, Copy, CheckCircle, Repeat, Calendar, Clock } from 'lucide-react';
+import { X, Mail, Share2, Download, Copy, CheckCircle, Repeat, Calendar, Clock, ChevronDown, Bell } from 'lucide-react';
 import { Invoice } from '../hooks/useInvoices';
 
 interface InvoiceDetailsProps {
@@ -13,6 +13,46 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
   onClose 
 }) => {
   const [copied, setCopied] = useState(false);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+  const [modalTop, setModalTop] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkScrollable = () => {
+      if (contentRef.current) {
+        const { scrollHeight, clientHeight, scrollTop } = contentRef.current;
+        setShowScrollIndicator(scrollHeight > clientHeight && scrollTop < scrollHeight - clientHeight - 10);
+      }
+    };
+
+    checkScrollable();
+    
+    const handleScroll = () => checkScrollable();
+    const contentElement = contentRef.current;
+    
+    if (contentElement) {
+      contentElement.addEventListener('scroll', handleScroll);
+      return () => contentElement.removeEventListener('scroll', handleScroll);
+    }
+  }, [invoice]);
+
+  // Prevent body scroll and calculate modal position based on current viewport
+  useEffect(() => {
+    // Capture the current scroll position when modal opens
+    const currentScrollY = window.scrollY;
+    const viewportHeight = window.innerHeight;
+    
+    // Center the modal in the current viewport
+    setModalTop(currentScrollY + (viewportHeight * 0.1)); // 10% from top of current view
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    // Cleanup: restore body scroll when modal is closed
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const handleCopyLink = () => {
     if (invoice.paymentLink) {
@@ -30,24 +70,45 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
     console.log('Downloading invoice:', invoice.id);
   };
 
+  const handleSendReminder = () => {
+    console.log('Sending reminder for invoice:', invoice.id);
+  };
+
+  // Determine if invoice is overdue
+  const isOverdue = () => {
+    if (invoice.status === 'paid') return false;
+    const now = new Date();
+    const dueDate = invoice.dueDate.toDate();
+    return dueDate < now;
+  };
+
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-        onClick={onClose}
-      >
+      <div className="fixed inset-0 z-50 overflow-hidden">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white/90 backdrop-blur-xl border border-white/50 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <div 
+          className="absolute left-1/2 transform -translate-x-1/2 w-full max-w-2xl px-4"
+          style={{ 
+            top: `${modalTop}px`,
+            zIndex: 51
+          }}
         >
-          <div className="flex items-center justify-between p-6 border-b border-brand-200/40">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white/90 backdrop-blur-xl border border-white/50 rounded-2xl shadow-2xl w-full max-h-[80vh] flex flex-col relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+          {/* Fixed Header */}
+          <div className="flex items-center justify-between p-6 border-b border-brand-200/40 flex-shrink-0">
             <h2 className="text-2xl font-bold text-brand-900">Invoice Details</h2>
             <button
               onClick={onClose}
@@ -57,7 +118,12 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto">
+          {/* Scrollable Content */}
+          <div 
+            ref={contentRef}
+            className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-brand-300 scrollbar-track-brand-100 relative"
+            style={{ maxHeight: 'calc(90vh - 140px)', scrollBehavior: 'smooth' }}
+          >
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -69,11 +135,11 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm ${
                     invoice.status === 'paid' 
                       ? 'bg-emerald-100/80 text-emerald-700'
-                      : invoice.status === 'overdue'
+                      : isOverdue()
                       ? 'bg-red-100/80 text-red-700'
                       : 'bg-amber-100/80 text-amber-700'
                   }`}>
-                    {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                    {invoice.status === 'paid' ? 'Paid' : isOverdue() ? 'Overdue' : 'Pending'}
                   </span>
                 </div>
               </div>
@@ -235,9 +301,28 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Scroll Indicator */}
+            {showScrollIndicator && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 text-brand-500 text-xs bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-brand-200/40"
+              >
+                <span>Scroll for more</span>
+                <motion.div
+                  animate={{ y: [0, 2, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </motion.div>
+              </motion.div>
+            )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-brand-200/40 bg-gradient-to-r from-brand-50/30 to-brand-100/30 backdrop-blur-sm">
+          {/* Fixed Footer */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-brand-200/40 bg-gradient-to-r from-brand-50/30 to-brand-100/30 backdrop-blur-sm flex-shrink-0">
             <button
               onClick={handleDownload}
               className="px-4 py-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100/40 rounded-lg transition-all duration-200 flex items-center gap-2"
@@ -253,6 +338,16 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               <Mail className="w-4 h-4" />
               Send Email
             </button>
+
+            {isOverdue() && (
+              <button
+                onClick={handleSendReminder}
+                className="px-4 py-2 text-orange-600 hover:text-orange-800 hover:bg-orange-100/40 rounded-lg transition-all duration-200 flex items-center gap-2"
+              >
+                <Bell className="w-4 h-4" />
+                Send Reminder
+              </button>
+            )}
             
             <button
               onClick={handleCopyLink}
@@ -263,7 +358,8 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
             </button>
           </div>
         </motion.div>
-      </motion.div>
+      </div>
+    </div>
     </AnimatePresence>
       );
   }; 

@@ -332,35 +332,56 @@ export const useInvoices = () => {
         isRecurring: data.isRecurring || false
       };
 
-      // Add payment information if marked as paid
+      // Add payment information if marked as paid with smart date logic
       if (data.markAsPaid) {
-        invoiceData.paidAt = Timestamp.now();
+        const now = new Date();
+        const dueDate = data.dueDate;
+        
+        // If due date is in the past, use that date as paid date
+        // If due date is in the future, use today as paid date
+        if (dueDate <= now) {
+          invoiceData.paidAt = Timestamp.fromDate(dueDate);
+        } else {
+          invoiceData.paidAt = Timestamp.now();
+        }
+        
         invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
       }
 
-      // Add recurring template fields if this is a recurring invoice
-      if (data.isRecurring && data.recurringFrequency) {
-        invoiceData.isTemplate = true;
-        invoiceData.templateName = data.templateName || `${data.description} (${data.recurringFrequency})`;
-        invoiceData.recurringFrequency = data.recurringFrequency;
-        invoiceData.nextInvoiceDate = Timestamp.fromDate(calculateNextInvoiceDate(data.dueDate, data.recurringFrequency));
-        invoiceData.totalGenerated = 0;
-        invoiceData.isActive = true;
-        
-        if (data.recurringEndDate) {
-          invoiceData.recurringEndDate = Timestamp.fromDate(data.recurringEndDate);
-        }
-      }
-
-      // Only include optional fields if they have values (Firestore doesn't allow undefined)
-      // recurringId, paidAt, and paidMethod are only set when relevant
-
-      console.log('🔥 Invoice data to save:', invoiceData);
+      // Handle recurring invoices: create regular invoice first
+      console.log('🔥 Invoice data to save (regular invoice):', invoiceData);
       
       const collectionRef = collection(db, 'invoices');
       const docRef = await addDoc(collectionRef, invoiceData);
-      console.log('🔥 Invoice created successfully with ID:', docRef.id);
+      console.log('🔥 Regular invoice created successfully with ID:', docRef.id);
       
+      // If recurring, also create a template for future invoices
+      if (data.isRecurring && data.recurringFrequency) {
+        console.log('🔄 Creating recurring template...');
+        
+        const templateData: any = {
+          ...invoiceData, // Copy all invoice data
+          number: `TEMPLATE-${invoiceNumber}`, // Different number for template
+          description: data.templateName || `${data.description} (${data.recurringFrequency})`,
+          isTemplate: true,
+          templateName: data.templateName || `${data.description} (${data.recurringFrequency})`,
+          recurringFrequency: data.recurringFrequency,
+          nextInvoiceDate: Timestamp.fromDate(calculateNextInvoiceDate(data.dueDate, data.recurringFrequency)),
+          totalGenerated: 1, // We already generated one (the regular invoice)
+          isActive: true,
+          status: 'draft', // Templates are drafts
+          isRecurring: true
+        };
+        
+        if (data.recurringEndDate) {
+          templateData.recurringEndDate = Timestamp.fromDate(data.recurringEndDate);
+        }
+        
+        console.log('🔄 Template data to save:', templateData);
+        const templateDocRef = await addDoc(collectionRef, templateData);
+        console.log('🔄 Recurring template created successfully with ID:', templateDocRef.id);
+      }
+
       return docRef.id;
     } catch (error: any) {
       console.error('🚨 Full error creating invoice:', error);
@@ -398,6 +419,8 @@ export const useInvoices = () => {
     if (!currentUser) throw new Error('User not authenticated');
 
     try {
+      // Get existing invoice to check current payment status
+      const existingInvoice = invoices.find(inv => inv.id === invoiceId);
       const invoiceData: any = {
         description: data.description,
         amount: data.amount || 0,
@@ -416,13 +439,29 @@ export const useInvoices = () => {
         isRecurring: data.isRecurring || false
       };
 
-      // Handle payment status updates
-      if (data.markAsPaid && !invoiceData.paidAt) {
+      // Handle payment status updates with smart date logic
+      if (data.markAsPaid && !existingInvoice?.paidAt) {
+        const now = new Date();
+        const dueDate = data.dueDate;
+        
         invoiceData.status = 'paid';
-        invoiceData.paidAt = Timestamp.now();
+        
+        // If due date is in the past, use that date as paid date
+        // If due date is in the future, use today as paid date
+        if (dueDate <= now) {
+          invoiceData.paidAt = Timestamp.fromDate(dueDate);
+        } else {
+          invoiceData.paidAt = Timestamp.now();
+        }
+        
         invoiceData.paidMethod = data.paidMethod || 'Cash/E-transfer';
       } else if (!data.markAsPaid && data.status) {
         invoiceData.status = data.status;
+        // If unmarking as paid, remove payment info
+        if (data.status !== 'paid') {
+          invoiceData.paidAt = null;
+          invoiceData.paidMethod = null;
+        }
       }
 
       // Add recurring fields if this is a recurring invoice

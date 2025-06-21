@@ -603,24 +603,24 @@
         
         // Font loading detection
         if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(() => {
-                fontsLoaded = true;
-                checkLoadingComplete();
-            });
+        document.fonts.ready.then(() => {
+            fontsLoaded = true;
+            checkLoadingComplete();
+        });
         } else {
             // Fallback for older browsers
-            setTimeout(() => {
+        setTimeout(() => {
                 fontsLoaded = true;
                 checkLoadingComplete();
             }, 2000);
-        }
+            }
         
         // DOM ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                contentLoaded = true;
-                checkLoadingComplete();
-            });
+        document.addEventListener('DOMContentLoaded', () => {
+            contentLoaded = true;
+            checkLoadingComplete();
+        });
         } else {
             contentLoaded = true;
         }
@@ -641,7 +641,7 @@
         
         // Performance tracking
         if (window.performance) {
-            window.performance.mark('app-start');
+        window.performance.mark('app-start');
         }
     </script>
     

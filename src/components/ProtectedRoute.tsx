@@ -103,7 +103,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
                   ease: "easeInOut" 
                 }}
                 className="absolute w-3 h-3 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full"
-              />
+            />
             </div>
             
             <motion.p

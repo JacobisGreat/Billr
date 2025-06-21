@@ -103,7 +103,7 @@ const RouteLoader = React.memo(() => (
         }}
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-brand-100/30 to-brand-200/20 rounded-full blur-3xl"
       />
-    </div>
+      </div>
 
     {/* Main loading content */}
     <motion.div
@@ -158,7 +158,7 @@ const RouteLoader = React.memo(() => (
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            className="absolute w-12 h-12 border-3 border-transparent border-t-brand-600 rounded-full"
+            className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 rounded-full"
           />
           
           {/* Center animated dot */}
@@ -199,7 +199,7 @@ const RouteLoader = React.memo(() => (
               />
             </motion.div>
           ))}
-        </div>
+    </div>
 
         {/* Loading text with typing effect */}
         <motion.div
@@ -867,7 +867,7 @@ const SocialProofSection: React.FC = () => {
     {
       name: "Sarah",
       role: "Tutor", 
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face",
+      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=60&h=60&q=80",
       quote: "Finally, I don't have to remind people to pay me. They just do it!",
     },
     {
@@ -928,6 +928,10 @@ const SocialProofSection: React.FC = () => {
                       src={testimonial.image} 
                       alt={testimonial.name}
                       loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=random&color=fff&size=60`;
+                      }}
                       className="w-12 h-12 rounded-full object-cover border-2 border-brand-200/50"
                     />
                     <div>
@@ -1026,10 +1030,6 @@ const FAQSection: React.FC = () => {
     {
       question: "How is this different from just using Venmo?", 
       answer: "Billr gives you a paper trail for taxes, professional invoices that build your credibility, and automatic payment tracking. Plus, clients can pay however they want—you still get paid instantly."
-    },
-    {
-      question: "What if my clients don't want another app?",
-      answer: "They don't need one! Clients just click your payment link and pay with their preferred method. It's actually easier for them than hunting down your Venmo username."
     },
     {
       question: "How fast do I actually get paid?",

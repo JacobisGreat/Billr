@@ -27,7 +27,9 @@ import {
   TrendingDown,
   AlertTriangle,
   CheckCircle,
-  Edit3
+  Edit3,
+  ExternalLink,
+  Bell
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -46,6 +48,8 @@ import {
   Bar
 } from 'recharts';
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
+import { stripeService } from '../services/stripeService';
+import { emailService, InvoiceEmailData } from '../services/emailService';
 
 type DashboardTab = 'overview' | 'invoices' | 'customers' | 'schedule';
 
@@ -72,8 +76,32 @@ export const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [showMoreWidgets, setShowMoreWidgets] = useState(false);
 
-  // Get filtered invoices (excluding templates from main view)
-  const regularInvoices = invoices.filter(invoice => !invoice.isTemplate);
+  // Helper function to get correct invoice status (including overdue detection)
+  const getInvoiceStatus = (invoice: Invoice): 'paid' | 'pending' | 'overdue' | 'draft' | 'cancelled' => {
+    if (invoice.status === 'paid' || invoice.status === 'draft' || invoice.status === 'cancelled') {
+      return invoice.status;
+    }
+    
+    // Check if pending invoice is overdue
+    if (invoice.status === 'pending' || invoice.status === 'overdue') {
+      const now = new Date();
+      const dueDate = invoice.dueDate.toDate();
+      
+      if (dueDate < now) {
+        return 'overdue';
+      }
+      return 'pending';
+    }
+    
+    return invoice.status;
+  };
+
+  // Get filtered invoices (excluding templates from main view) with updated status
+  const regularInvoices = invoices.filter(invoice => !invoice.isTemplate).map(invoice => ({
+    ...invoice,
+    status: getInvoiceStatus(invoice)
+  }));
+  console.log('📊 Dashboard: Total invoices:', invoices.length, 'Regular invoices:', regularInvoices.length, 'Templates:', invoices.filter(i => i.isTemplate).length);
   const recurringTemplates = getRecurringTemplates();
   const templatesDue = getTemplatesDueForGeneration();
 
@@ -100,21 +128,21 @@ export const Dashboard: React.FC = () => {
 
   const advancedStats = {
     thisMonthRevenue: regularInvoices.filter(inv => 
-      inv.status === 'paid' && inv.createdAt.toDate() >= currentMonth
+      inv.status === 'paid' && inv.paidAt && inv.paidAt.toDate() >= currentMonth
     ).reduce((sum, inv) => sum + inv.amount, 0),
     
     lastMonthRevenue: regularInvoices.filter(inv => 
-      inv.status === 'paid' && 
-      inv.createdAt.toDate() >= lastMonth && 
-      inv.createdAt.toDate() < currentMonth
+      inv.status === 'paid' && inv.paidAt &&
+      inv.paidAt.toDate() >= lastMonth && 
+      inv.paidAt.toDate() < currentMonth
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
     last30DaysRevenue: regularInvoices.filter(inv => 
-      inv.status === 'paid' && inv.createdAt.toDate() >= last30Days
+      inv.status === 'paid' && inv.paidAt && inv.paidAt.toDate() >= last30Days
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
     last7DaysRevenue: regularInvoices.filter(inv => 
-      inv.status === 'paid' && inv.createdAt.toDate() >= last7Days
+      inv.status === 'paid' && inv.paidAt && inv.paidAt.toDate() >= last7Days
     ).reduce((sum, inv) => sum + inv.amount, 0),
 
     overdueInvoices: regularInvoices.filter(inv => inv.status === 'overdue').length,
@@ -128,16 +156,19 @@ export const Dashboard: React.FC = () => {
     ? ((advancedStats.thisMonthRevenue - advancedStats.lastMonthRevenue) / advancedStats.lastMonthRevenue) * 100 
     : 0;
 
-  // Revenue trend data (last 30 days)
+  // Revenue trend data (last 30 days) - use actual paid date
   const revenueTrendData = eachDayOfInterval({
     start: last30Days,
     end: currentDate
   }).map(date => {
     const dayRevenue = regularInvoices
-      .filter(inv => 
-        inv.status === 'paid' && 
-        format(inv.createdAt.toDate(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-      )
+      .filter(inv => {
+        if (inv.status !== 'paid' || !inv.paidAt) return false;
+        
+        // Use paidAt date for the graph, not createdAt
+        const paidDate = inv.paidAt.toDate();
+        return format(paidDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+      })
       .reduce((sum, inv) => sum + inv.amount, 0);
     
     return {
@@ -153,14 +184,14 @@ export const Dashboard: React.FC = () => {
     { name: 'Overdue', value: advancedStats.overdueInvoices, color: '#ef4444' }
   ].filter(item => item.value > 0);
 
-  // Monthly revenue data (last 6 months)
+  // Monthly revenue data (last 6 months) - use paid dates
   const monthlyData = Array.from({ length: 6 }, (_, i) => {
     const monthStart = startOfMonth(subDays(currentDate, i * 30));
     const monthEnd = endOfMonth(monthStart);
     const monthRevenue = regularInvoices
       .filter(inv => 
-        inv.status === 'paid' && 
-        isWithinInterval(inv.createdAt.toDate(), { start: monthStart, end: monthEnd })
+        inv.status === 'paid' && inv.paidAt &&
+        isWithinInterval(inv.paidAt.toDate(), { start: monthStart, end: monthEnd })
       )
       .reduce((sum, inv) => sum + inv.amount, 0);
     
@@ -175,12 +206,14 @@ export const Dashboard: React.FC = () => {
 
   const handleCreateInvoice = async (invoiceData: any): Promise<string> => {
     try {
+      console.log('🚀 Dashboard: Creating invoice with data:', invoiceData);
       const invoiceId = await createInvoice(invoiceData);
+      console.log('✅ Dashboard: Invoice created successfully with ID:', invoiceId);
       setIsCreateModalOpen(false);
       setEditingInvoice(null);
       return invoiceId;
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      console.error('❌ Dashboard: Error creating invoice:', error);
       throw error;
     }
   };
@@ -208,10 +241,40 @@ export const Dashboard: React.FC = () => {
 
   const handleSendEmail = async (invoice: Invoice) => {
     try {
-      // Email functionality is currently disabled
-      console.log('Email feature is disabled');
+      // Generate payment link
+      const paymentLink = stripeService.generatePaymentUrl(invoice.id, invoice.amount);
+      
+      // Prepare email data
+      const emailData: InvoiceEmailData = {
+        clientEmail: invoice.clientEmail,
+        clientName: invoice.clientName || 'Valued Customer',
+        invoiceId: invoice.id,
+        description: invoice.description,
+        amount: invoice.amount,
+        dueDate: invoice.dueDate.toDate(),
+        paymentLink: paymentLink,
+        companyName: import.meta.env.VITE_COMPANY_NAME || 'Your Company',
+        notes: invoice.notes
+      };
+
+      // Send email based on invoice status
+      let emailSent = false;
+      if (invoice.status === 'paid') {
+        emailSent = await emailService.sendPaymentConfirmation(emailData);
+      } else if (invoice.status === 'overdue') {
+        emailSent = await emailService.sendPaymentReminder(emailData);
+      } else {
+        emailSent = await emailService.sendInvoiceEmail(emailData);
+      }
+
+      if (emailSent) {
+        alert('Email sent successfully!');
+      } else {
+        alert('Failed to send email. Please check your email configuration.');
+      }
     } catch (error) {
       console.error('Error sending email:', error);
+      alert('Error sending email. Please try again.');
     }
   };
 
@@ -222,6 +285,28 @@ export const Dashboard: React.FC = () => {
     } catch (error) {
       console.error('Error creating customer:', error);
       throw error;
+    }
+  };
+
+  const handlePayNow = async (invoice: Invoice) => {
+    try {
+      // Create payment session
+      const paymentData = {
+        amount: invoice.amount,
+        currency: 'usd',
+        description: invoice.description,
+        invoiceId: invoice.id,
+        clientEmail: invoice.clientEmail,
+        clientName: invoice.clientName,
+        successUrl: `${window.location.origin}/payment-success?invoice=${invoice.id}`,
+        cancelUrl: `${window.location.origin}/payment-cancelled?invoice=${invoice.id}`
+      };
+
+      // Redirect to Stripe Checkout
+      await stripeService.redirectToCheckout(paymentData);
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      alert('Error processing payment. Please try again.');
     }
   };
 
@@ -255,45 +340,68 @@ export const Dashboard: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center z-50 overflow-hidden">
+        {/* Animated background elements */}
         <div className="absolute inset-0 pointer-events-none">
+          {/* Grid background */}
           <div className="absolute inset-0 grid-bg opacity-20" />
+          
+          {/* Floating animated orbs */}
           <motion.div
             animate={{ 
-              y: [0, -15, 0], 
-              x: [0, 10, 0],
-              scale: [1, 1.03, 1]
+              y: [0, -30, 0], 
+              x: [0, 20, 0],
+              scale: [1, 1.1, 1]
             }}
             transition={{ 
-              duration: 5, 
+              duration: 8, 
               repeat: Infinity, 
               ease: "easeInOut" 
             }}
-            className="absolute top-24 left-24 w-40 h-40 bg-gradient-to-br from-brand-300/30 to-brand-400/20 rounded-full blur-2xl"
+            className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-brand-300/40 to-brand-400/20 rounded-full blur-3xl"
           />
+          
           <motion.div
             animate={{ 
-              y: [0, 18, 0], 
-              x: [0, -15, 0],
-              scale: [1, 0.97, 1]
+              y: [0, 25, 0], 
+              x: [0, -25, 0],
+              scale: [1, 0.9, 1]
             }}
             transition={{ 
-              duration: 7, 
+              duration: 6, 
               repeat: Infinity, 
               ease: "easeInOut",
-              delay: 0.5
+              delay: 1
             }}
-            className="absolute bottom-24 right-24 w-56 h-56 bg-gradient-to-br from-brand-200/40 to-brand-300/30 rounded-full blur-3xl"
+            className="absolute bottom-32 right-32 w-80 h-80 bg-gradient-to-br from-brand-200/30 to-brand-300/20 rounded-full blur-3xl"
+          />
+          
+          <motion.div
+            animate={{ 
+              y: [0, -15, 0], 
+              x: [0, 15, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              duration: 10, 
+              repeat: Infinity, 
+              ease: "easeInOut",
+              delay: 2
+            }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-brand-100/30 to-brand-200/20 rounded-full blur-3xl"
           />
         </div>
 
-        <motion.div 
+        {/* Main loading content */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 text-center"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6 }}
         >
-          <div className="relative p-10 rounded-3xl bg-white/80 backdrop-blur-xl border border-brand-200/60 shadow-2xl max-w-sm mx-auto overflow-hidden">
+          {/* Glassmorphic container */}
+          <div className="relative p-12 rounded-3xl bg-white/80 backdrop-blur-xl border border-brand-200/60 shadow-2xl max-w-md mx-auto overflow-hidden">
+            {/* Subtle shine effect */}
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ 
@@ -305,55 +413,158 @@ export const Dashboard: React.FC = () => {
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
             />
             
+            {/* Logo */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-6"
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mb-8"
             >
-              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
+              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
                 Billr
               </h1>
             </motion.div>
-            
-            <div className="relative mb-6 flex items-center justify-center">
+
+            {/* Advanced loading animation */}
+            <div className="relative mb-8 flex items-center justify-center">
+              {/* Outer rotating ring */}
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 border-4 border-brand-200/30 rounded-full"
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="w-20 h-20 border-4 border-brand-200/30 rounded-full"
               />
+              
+              {/* Middle ring - counter rotation */}
               <motion.div
                 animate={{ rotate: -360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute w-16 h-16 border-4 border-transparent border-t-brand-500 border-r-brand-500 rounded-full"
               />
+              
+              {/* Inner ring */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 rounded-full"
+              />
+              
+              {/* Center animated dot */}
               <motion.div
                 animate={{ 
-                  scale: [1, 1.2, 1],
+                  scale: [1, 1.3, 1],
                   opacity: [0.8, 1, 0.8]
                 }}
                 transition={{ 
-                  duration: 1.5, 
+                  duration: 2, 
                   repeat: Infinity, 
                   ease: "easeInOut" 
                 }}
-                className="absolute w-3 h-3 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full"
+                className="absolute w-4 h-4 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full shadow-lg"
               />
+              
+              {/* Orbiting dots */}
+              {[0, 120, 240].map((rotation, index) => (
+                <motion.div
+                  key={index}
+                  animate={{ rotate: 360 }}
+                  transition={{ 
+                    duration: 4, 
+                    repeat: Infinity, 
+                    ease: "linear",
+                    delay: index * 0.5
+                  }}
+                  className="absolute w-20 h-20"
+                  style={{ transformOrigin: 'center' }}
+                >
+                  <div 
+                    className="w-2 h-2 bg-gradient-to-r from-brand-400 to-brand-500 rounded-full absolute"
+                    style={{ 
+                      top: '10px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                </motion.div>
+              ))}
             </div>
-            
-            <motion.p
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="text-brand-700 font-medium"
+
+            {/* Loading text with typing effect */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="space-y-3"
             >
-              Loading authentication...
-            </motion.p>
+              <motion.h2
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="text-xl font-semibold text-brand-800"
+              >
+                Preparing Your Experience
+              </motion.h2>
+              
+              <div className="h-6 flex items-center justify-center">
+                <motion.div
+                  animate={{ 
+                    width: ['20%', '100%', '100%', '20%'],
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity, 
+                    ease: "easeInOut",
+                    repeatDelay: 1
+                  }}
+                  className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-full"
+                />
+              </div>
+              
+              <motion.p
+                animate={{ opacity: [0.6, 0.9, 0.6] }}
+                transition={{ 
+                  duration: 2.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 0.5
+                }}
+                className="text-brand-600 text-sm"
+              >
+                Setting up your dashboard
+              </motion.p>
+            </motion.div>
+
+            {/* Bottom decorative elements */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-400/50 to-transparent" />
             
-            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-brand-300/60 rounded-tl-3xl" />
-            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-brand-300/60 rounded-tr-3xl" />
-            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-brand-300/60 rounded-bl-3xl" />
-            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-brand-300/60 rounded-br-3xl" />
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-300/60 rounded-tl-3xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-300/60 rounded-tr-3xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-300/60 rounded-bl-3xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-300/60 rounded-br-3xl" />
           </div>
+
+          {/* Floating particles */}
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                y: [0, -100, 0],
+                x: [0, Math.random() * 100 - 50, 0],
+                opacity: [0, 1, 0],
+                scale: [0.5, 1, 0.5]
+              }}
+              transition={{
+                duration: 4 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 3,
+                ease: "easeInOut"
+              }}
+              className="absolute w-1 h-1 bg-brand-400/60 rounded-full"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${60 + Math.random() * 30}%`,
+              }}
+            />
+          ))}
         </motion.div>
       </div>
     );
@@ -361,45 +572,68 @@ export const Dashboard: React.FC = () => {
 
   if (invoicesLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-br from-brand-50 via-brand-100 to-brand-200 flex items-center justify-center z-50 overflow-hidden">
+        {/* Animated background elements */}
         <div className="absolute inset-0 pointer-events-none">
+          {/* Grid background */}
           <div className="absolute inset-0 grid-bg opacity-20" />
+          
+          {/* Floating animated orbs */}
           <motion.div
             animate={{ 
-              y: [0, -12, 0], 
-              x: [0, 8, 0],
-              scale: [1, 1.02, 1]
-            }}
-            transition={{ 
-              duration: 6, 
-              repeat: Infinity, 
-              ease: "easeInOut" 
-            }}
-            className="absolute top-28 left-28 w-44 h-44 bg-gradient-to-br from-brand-300/35 to-brand-400/25 rounded-full blur-2xl"
-          />
-          <motion.div
-            animate={{ 
-              y: [0, 14, 0], 
-              x: [0, -12, 0],
-              scale: [1, 0.98, 1]
+              y: [0, -30, 0], 
+              x: [0, 20, 0],
+              scale: [1, 1.1, 1]
             }}
             transition={{ 
               duration: 8, 
               repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+            className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-brand-300/40 to-brand-400/20 rounded-full blur-3xl"
+          />
+          
+          <motion.div
+            animate={{ 
+              y: [0, 25, 0], 
+              x: [0, -25, 0],
+              scale: [1, 0.9, 1]
+            }}
+            transition={{ 
+              duration: 6, 
+              repeat: Infinity, 
               ease: "easeInOut",
               delay: 1
             }}
-            className="absolute bottom-28 right-28 w-52 h-52 bg-gradient-to-br from-brand-200/45 to-brand-300/35 rounded-full blur-3xl"
+            className="absolute bottom-32 right-32 w-80 h-80 bg-gradient-to-br from-brand-200/30 to-brand-300/20 rounded-full blur-3xl"
+          />
+          
+          <motion.div
+            animate={{ 
+              y: [0, -15, 0], 
+              x: [0, 15, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              duration: 10, 
+              repeat: Infinity, 
+              ease: "easeInOut",
+              delay: 2
+            }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-brand-100/30 to-brand-200/20 rounded-full blur-3xl"
           />
         </div>
 
-        <motion.div 
+        {/* Main loading content */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10 text-center"
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6 }}
         >
-          <div className="relative p-10 rounded-3xl bg-white/80 backdrop-blur-xl border border-brand-200/60 shadow-2xl max-w-sm mx-auto overflow-hidden">
+          {/* Glassmorphic container */}
+          <div className="relative p-12 rounded-3xl bg-white/80 backdrop-blur-xl border border-brand-200/60 shadow-2xl max-w-md mx-auto overflow-hidden">
+            {/* Subtle shine effect */}
             <motion.div
               animate={{ x: ['-100%', '100%'] }}
               transition={{ 
@@ -411,55 +645,158 @@ export const Dashboard: React.FC = () => {
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
             />
             
+            {/* Logo */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mb-6"
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mb-8"
             >
-              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
+              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-600 to-brand-700">
                 Billr
               </h1>
             </motion.div>
-            
-            <div className="relative mb-6 flex items-center justify-center">
+
+            {/* Advanced loading animation */}
+            <div className="relative mb-8 flex items-center justify-center">
+              {/* Outer rotating ring */}
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 border-4 border-brand-200/30 rounded-full"
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="w-20 h-20 border-4 border-brand-200/30 rounded-full"
               />
+              
+              {/* Middle ring - counter rotation */}
               <motion.div
                 animate={{ rotate: -360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute w-16 h-16 border-4 border-transparent border-t-brand-500 border-r-brand-500 rounded-full"
               />
+              
+              {/* Inner ring */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 rounded-full"
+              />
+              
+              {/* Center animated dot */}
               <motion.div
                 animate={{ 
-                  scale: [1, 1.2, 1],
+                  scale: [1, 1.3, 1],
                   opacity: [0.8, 1, 0.8]
                 }}
                 transition={{ 
-                  duration: 1.5, 
+                  duration: 2, 
                   repeat: Infinity, 
                   ease: "easeInOut" 
                 }}
-                className="absolute w-3 h-3 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full"
+                className="absolute w-4 h-4 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full shadow-lg"
               />
+              
+              {/* Orbiting dots */}
+              {[0, 120, 240].map((rotation, index) => (
+                <motion.div
+                  key={index}
+                  animate={{ rotate: 360 }}
+                  transition={{ 
+                    duration: 4, 
+                    repeat: Infinity, 
+                    ease: "linear",
+                    delay: index * 0.5
+                  }}
+                  className="absolute w-20 h-20"
+                  style={{ transformOrigin: 'center' }}
+                >
+                  <div 
+                    className="w-2 h-2 bg-gradient-to-r from-brand-400 to-brand-500 rounded-full absolute"
+                    style={{ 
+                      top: '10px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                </motion.div>
+              ))}
             </div>
-            
-            <motion.p
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="text-brand-700 font-medium"
+
+            {/* Loading text with typing effect */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="space-y-3"
             >
-              Loading your dashboard...
-            </motion.p>
+              <motion.h2
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="text-xl font-semibold text-brand-800"
+              >
+                Preparing Your Experience
+              </motion.h2>
+              
+              <div className="h-6 flex items-center justify-center">
+                <motion.div
+                  animate={{ 
+                    width: ['20%', '100%', '100%', '20%'],
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    repeat: Infinity, 
+                    ease: "easeInOut",
+                    repeatDelay: 1
+                  }}
+                  className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-full"
+                />
+              </div>
+              
+              <motion.p
+                animate={{ opacity: [0.6, 0.9, 0.6] }}
+                transition={{ 
+                  duration: 2.5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 0.5
+                }}
+                className="text-brand-600 text-sm"
+              >
+                Setting up your dashboard
+              </motion.p>
+            </motion.div>
+
+            {/* Bottom decorative elements */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-400/50 to-transparent" />
             
-            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-brand-300/60 rounded-tl-3xl" />
-            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-brand-300/60 rounded-tr-3xl" />
-            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-brand-300/60 rounded-bl-3xl" />
-            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-brand-300/60 rounded-br-3xl" />
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-brand-300/60 rounded-tl-3xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-brand-300/60 rounded-tr-3xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-brand-300/60 rounded-bl-3xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-brand-300/60 rounded-br-3xl" />
           </div>
+
+          {/* Floating particles */}
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                y: [0, -100, 0],
+                x: [0, Math.random() * 100 - 50, 0],
+                opacity: [0, 1, 0],
+                scale: [0.5, 1, 0.5]
+              }}
+              transition={{
+                duration: 4 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 3,
+                ease: "easeInOut"
+              }}
+              className="absolute w-1 h-1 bg-brand-400/60 rounded-full"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${60 + Math.random() * 30}%`,
+              }}
+            />
+          ))}
         </motion.div>
       </div>
     );
@@ -478,15 +815,15 @@ export const Dashboard: React.FC = () => {
                 Billr
               </button>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-zinc-700">Welcome, {currentUser?.displayName || currentUser?.email}</span>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-medium shadow-brand hover:shadow-brand-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2"
-              >
-                Sign Out
-              </button>
-            </div>
+                      <div className="flex items-center space-x-6">
+            <span className="text-zinc-700">Welcome, {currentUser?.displayName || currentUser?.email}</span>
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-medium shadow-brand hover:shadow-brand-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2"
+            >
+              Sign Out
+            </button>
+          </div>
           </div>
         </div>
       </nav>
@@ -534,11 +871,11 @@ export const Dashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <>
             {/* Primary Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
                 className="p-6 rounded-2xl backdrop-blur-xl bg-white/80 border border-brand-200/60 shadow-brand"
               >
                 <div className="flex items-center justify-between">
@@ -555,17 +892,17 @@ export const Dashboard: React.FC = () => {
                         {Math.abs(monthlyGrowth).toFixed(1)}% vs last month
                       </span>
                     </div>
-                  </div>
+              </div>
                   <div className="p-3 bg-emerald-100 rounded-xl">
                     <DollarSign className="w-6 h-6 text-emerald-600" />
-                  </div>
-                </div>
-              </motion.div>
+              </div>
+            </div>
+          </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
                 className="p-6 rounded-2xl backdrop-blur-xl bg-white/80 border border-brand-200/60 shadow-brand"
               >
                 <div className="flex items-center justify-between">
@@ -575,17 +912,17 @@ export const Dashboard: React.FC = () => {
                     <p className="text-xs text-brand-500 mt-1">
                       Last 30 days: ${advancedStats.last30DaysRevenue.toFixed(2)}
                     </p>
-                  </div>
+              </div>
                   <div className="p-3 bg-blue-100 rounded-xl">
                     <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-              </motion.div>
+              </div>
+            </div>
+          </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
                 className="p-6 rounded-2xl backdrop-blur-xl bg-white/80 border border-brand-200/60 shadow-brand"
               >
                 <div className="flex items-center justify-between">
@@ -595,17 +932,17 @@ export const Dashboard: React.FC = () => {
                     <p className="text-xs text-brand-500 mt-1">
                       {regularInvoices.filter(inv => inv.status === 'pending').length} invoices
                     </p>
-                  </div>
+              </div>
                   <div className="p-3 bg-amber-100 rounded-xl">
                     <Clock className="w-6 h-6 text-amber-600" />
-                  </div>
-                </div>
-              </motion.div>
+              </div>
+            </div>
+          </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
                 className="p-6 rounded-2xl backdrop-blur-xl bg-white/80 border border-brand-200/60 shadow-brand"
               >
                 <div className="flex items-center justify-between">
@@ -615,13 +952,13 @@ export const Dashboard: React.FC = () => {
                     <p className="text-xs text-brand-500 mt-1">
                       {stats.paidInvoices}/{stats.totalInvoices} paid
                     </p>
-                  </div>
+              </div>
                   <div className="p-3 bg-brand-100 rounded-xl">
                     <Target className="w-6 h-6 text-brand-600" />
-                  </div>
-                </div>
-              </motion.div>
+              </div>
             </div>
+          </motion.div>
+        </div>
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -885,50 +1222,50 @@ export const Dashboard: React.FC = () => {
             </AnimatePresence>
 
             {/* Recent Invoices Table */}
-            <div className="backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl shadow-xl">
-              <div className="p-6 border-b border-white/40">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl shadow-xl">
+          <div className="p-6 border-b border-white/40">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <h3 className="text-xl font-semibold text-brand-800">Invoices</h3>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-                      <input
-                        type="text"
-                        placeholder="Search invoices..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search invoices..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
-                      />
-                    </div>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
                       className="px-4 py-2 pr-10 bg-white/60 border border-brand-200/60 rounded-xl text-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm appearance-none bg-no-repeat bg-right"
                       style={{
                         backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                         backgroundPosition: 'right 0.5rem center',
                         backgroundSize: '1.5em 1.5em'
                       }}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="paid">Paid</option>
-                      <option value="overdue">Overdue</option>
-                    </select>
-                    <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2 shadow-brand hover:shadow-brand-lg"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create Invoice
-                    </button>
-                  </div>
-                </div>
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2 shadow-brand hover:shadow-brand-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Invoice
+                </button>
               </div>
+            </div>
+          </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
                     <tr className="border-b border-brand-200/40">
                       <th className="text-left p-4 text-brand-700 font-medium">Client</th>
                       <th className="text-left p-4 text-brand-700 font-medium">Description</th>
@@ -937,14 +1274,14 @@ export const Dashboard: React.FC = () => {
                       <th className="text-left p-4 text-brand-700 font-medium">Due Date</th>
                       <th className="text-left p-4 text-brand-700 font-medium">Type</th>
                       <th className="text-left p-4 text-brand-700 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInvoices.map((invoice) => (
-                      <motion.tr
-                        key={invoice.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredInvoices.map((invoice) => (
+                  <motion.tr
+                    key={invoice.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                         className="border-b border-brand-200/20 hover:bg-brand-100/20 transition-colors"
                       >
                         <td className="p-4">
@@ -1007,6 +1344,24 @@ export const Dashboard: React.FC = () => {
                             >
                               <Mail className="w-4 h-4" />
                             </button>
+                            {invoice.status === 'overdue' && (
+                              <button
+                                onClick={() => console.log('Send reminder for:', invoice.id)}
+                                className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-100/40 rounded-lg transition-all duration-200"
+                                title="Send Reminder"
+                              >
+                                <Bell className="w-4 h-4" />
+                              </button>
+                            )}
+                            {invoice.status !== 'paid' && (
+                              <button
+                                onClick={() => handlePayNow(invoice)}
+                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100/40 rounded-lg transition-all duration-200"
+                                title="Pay Now"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </motion.tr>
@@ -1017,12 +1372,6 @@ export const Dashboard: React.FC = () => {
                 {filteredInvoices.length === 0 && (
                   <div className="text-center py-12">
                     <p className="text-brand-600">No invoices found</p>
-                    <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="mt-4 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 shadow-brand hover:shadow-brand-lg"
-                    >
-                      Create Your First Invoice
-                    </button>
                   </div>
                 )}
               </div>
@@ -1098,32 +1447,32 @@ export const Dashboard: React.FC = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="border-b border-brand-200/20 hover:bg-brand-100/20 transition-colors"
-                    >
-                      <td className="p-4">
-                        <div>
+                  >
+                    <td className="p-4">
+                      <div>
                           <div className="font-medium text-brand-800">{invoice.clientName || 'No name'}</div>
                           <div className="text-sm text-brand-600">{invoice.clientEmail}</div>
-                        </div>
-                      </td>
+                      </div>
+                    </td>
                       <td className="p-4 text-brand-700">{invoice.description}</td>
                       <td className="p-4 font-semibold text-brand-800">${invoice.amount.toFixed(2)}</td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                          invoice.status === 'paid' 
-                            ? 'bg-emerald-100/80 text-emerald-700'
-                            : invoice.status === 'overdue'
-                            ? 'bg-red-100/80 text-red-700'
-                            : 'bg-amber-100/80 text-amber-700'
-                        }`}>
-                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                        </span>
-                      </td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                        invoice.status === 'paid' 
+                          ? 'bg-emerald-100/80 text-emerald-700'
+                          : invoice.status === 'overdue'
+                          ? 'bg-red-100/80 text-red-700'
+                          : 'bg-amber-100/80 text-amber-700'
+                      }`}>
+                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                      </span>
+                    </td>
                       <td className="p-4 text-brand-700">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {invoice.dueDate.toDate().toLocaleDateString()}
-                        </div>
-                      </td>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {invoice.dueDate.toDate().toLocaleDateString()}
+                      </div>
+                    </td>
                       <td className="p-4">
                         {invoice.isRecurring ? (
                           <div className="flex items-center gap-1 text-brand-600">
@@ -1135,16 +1484,16 @@ export const Dashboard: React.FC = () => {
                         ) : (
                           <span className="text-xs text-brand-500">One-time</span>
                         )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setSelectedInvoice(invoice)}
+                    </td>
+                                        <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedInvoice(invoice)}
                             className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                           <button
                             onClick={() => handleOpenEditModal(invoice)}
                             className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
@@ -1152,33 +1501,51 @@ export const Dashboard: React.FC = () => {
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleSendEmail(invoice)}
+                        <button
+                          onClick={() => handleSendEmail(invoice)}
                             className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                            title="Send Email"
+                          title="Send Email"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </button>
+                        {invoice.status === 'overdue' && (
+                          <button
+                            onClick={() => console.log('Send reminder for:', invoice.id)}
+                            className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-100/40 rounded-lg transition-all duration-200"
+                            title="Send Reminder"
                           >
-                            <Mail className="w-4 h-4" />
+                            <Bell className="w-4 h-4" />
                           </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-              
-              {filteredInvoices.length === 0 && (
-                <div className="text-center py-12">
+                        )}
+                        {invoice.status !== 'paid' && (
+                          <button
+                            onClick={() => handlePayNow(invoice)}
+                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100/40 rounded-lg transition-all duration-200"
+                            title="Pay Now"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredInvoices.length === 0 && (
+              <div className="text-center py-12">
                   <p className="text-brand-600">No invoices found</p>
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
                     className="mt-4 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 shadow-brand hover:shadow-brand-lg"
-                  >
-                    Create Your First Invoice
-                  </button>
-                </div>
-              )}
-            </div>
+                >
+                  Create Your First Invoice
+                </button>
+              </div>
+            )}
           </div>
+        </div>
         )}
 
         {/* Schedule Tab */}
@@ -1189,28 +1556,29 @@ export const Dashboard: React.FC = () => {
 
       {/* Modals */}
       <AnimatePresence>
-        {isCreateModalOpen && (
-          <CreateInvoiceModal
-            isOpen={isCreateModalOpen}
-            onClose={handleCloseModal}
-            onSubmit={handleCreateInvoice}
-            editingInvoice={editingInvoice}
-            onCreateCustomer={handleCreateCustomer}
-          />
-        )}
+            {isCreateModalOpen && (
+        <CreateInvoiceModal
+          isOpen={isCreateModalOpen}
+          onClose={handleCloseModal}
+          onCreateInvoice={handleCreateInvoice}
+          onEditInvoice={handleEditInvoice}
+          editingInvoice={editingInvoice}
+          onCreateCustomer={handleCreateCustomer}
+        />
+      )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {selectedInvoice && (
-          <InvoiceDetails
-            invoice={selectedInvoice}
+      {selectedInvoice && (
+        <InvoiceDetails
+          invoice={selectedInvoice}
             isOpen={!!selectedInvoice}
-            onClose={() => setSelectedInvoice(null)}
-          />
-        )}
+          onClose={() => setSelectedInvoice(null)}
+        />
+      )}
       </AnimatePresence>
     </div>
   );
-};
+}; 
 
 export default Dashboard;
