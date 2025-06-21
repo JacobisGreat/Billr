@@ -208,7 +208,8 @@ export const Dashboard: React.FC = () => {
 
   const handleSendEmail = async (invoice: Invoice) => {
     try {
-      await sendInvoiceEmail(invoice.id);
+      // Email functionality is currently disabled
+      console.log('Email feature is disabled');
     } catch (error) {
       console.error('Error sending email:', error);
     }
@@ -319,12 +320,12 @@ export const Dashboard: React.FC = () => {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 border-3 border-brand-200/30 rounded-full"
+                className="w-16 h-16 border-4 border-brand-200/30 rounded-full"
               />
               <motion.div
                 animate={{ rotate: -360 }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute w-12 h-12 border-3 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
+                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
               />
               <motion.div
                 animate={{ 
@@ -425,12 +426,12 @@ export const Dashboard: React.FC = () => {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 border-3 border-brand-200/30 rounded-full"
+                className="w-16 h-16 border-4 border-brand-200/30 rounded-full"
               />
               <motion.div
                 animate={{ rotate: -360 }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute w-12 h-12 border-3 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
+                className="absolute w-12 h-12 border-4 border-transparent border-t-brand-600 border-r-brand-600 rounded-full"
               />
               <motion.div
                 animate={{ 
@@ -481,7 +482,7 @@ export const Dashboard: React.FC = () => {
               <span className="text-zinc-700">Welcome, {currentUser?.displayName || currentUser?.email}</span>
               <button
                 onClick={logout}
-                className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg font-medium shadow-brand hover:shadow-brand-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-300"
+                className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-medium shadow-brand hover:shadow-brand-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2"
               >
                 Sign Out
               </button>
@@ -883,143 +884,149 @@ export const Dashboard: React.FC = () => {
               )}
             </AnimatePresence>
 
-        <div className="backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl shadow-xl">
-          <div className="p-6 border-b border-white/40">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-xl font-semibold text-brand-800">Invoices</h3>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search invoices..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
-                  />
+            {/* Recent Invoices Table */}
+            <div className="backdrop-blur-xl bg-white/60 border border-white/40 rounded-2xl shadow-xl">
+              <div className="p-6 border-b border-white/40">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h3 className="text-xl font-semibold text-brand-800">Invoices</h3>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="Search invoices..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
+                      />
+                    </div>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                      className="px-4 py-2 pr-10 bg-white/60 border border-brand-200/60 rounded-xl text-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm appearance-none bg-no-repeat bg-right"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundSize: '1.5em 1.5em'
+                      }}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="paid">Paid</option>
+                      <option value="overdue">Overdue</option>
+                    </select>
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2 shadow-brand hover:shadow-brand-lg"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Invoice
+                    </button>
+                  </div>
                 </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="px-4 py-2 bg-white/60 border border-white/40 rounded-xl text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
-                >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2 shadow-brand hover:shadow-brand-lg"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Invoice
-                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-brand-200/40">
+                      <th className="text-left p-4 text-brand-700 font-medium">Client</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Description</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Amount</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Status</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Due Date</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Type</th>
+                      <th className="text-left p-4 text-brand-700 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInvoices.map((invoice) => (
+                      <motion.tr
+                        key={invoice.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-b border-brand-200/20 hover:bg-brand-100/20 transition-colors"
+                      >
+                        <td className="p-4">
+                          <div>
+                            <div className="font-medium text-brand-800">{invoice.clientName || 'No name'}</div>
+                            <div className="text-sm text-brand-600">{invoice.clientEmail}</div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-brand-700">{invoice.description}</td>
+                        <td className="p-4 font-semibold text-brand-800">${invoice.amount.toFixed(2)}</td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                            invoice.status === 'paid' 
+                              ? 'bg-emerald-100/80 text-emerald-700'
+                              : invoice.status === 'overdue'
+                              ? 'bg-red-100/80 text-red-700'
+                              : 'bg-amber-100/80 text-amber-700'
+                          }`}>
+                            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="p-4 text-brand-700">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {invoice.dueDate.toDate().toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {invoice.isRecurring ? (
+                            <div className="flex items-center gap-1 text-brand-600">
+                              <Repeat className="w-4 h-4" />
+                              <span className="text-xs">
+                                {invoice.recurringFrequency ? `${invoice.recurringFrequency.charAt(0).toUpperCase() + invoice.recurringFrequency.slice(1)}` : 'Recurring'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-brand-500">One-time</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedInvoice(invoice)}
+                              className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditModal(invoice)}
+                              className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
+                              title="Edit Invoice"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleSendEmail(invoice)}
+                              className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
+                              title="Send Email"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {filteredInvoices.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-brand-600">No invoices found</p>
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="mt-4 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 shadow-brand hover:shadow-brand-lg"
+                    >
+                      Create Your First Invoice
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-brand-200/40">
-                  <th className="text-left p-4 text-brand-700 font-medium">Client</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Description</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Amount</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Status</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Due Date</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Type</th>
-                  <th className="text-left p-4 text-brand-700 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.map((invoice) => (
-                  <motion.tr
-                    key={invoice.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border-b border-brand-200/20 hover:bg-brand-100/20 transition-colors"
-                  >
-                    <td className="p-4">
-                      <div>
-                        <div className="font-medium text-brand-800">{invoice.clientName || 'No name'}</div>
-                        <div className="text-sm text-brand-600">{invoice.clientEmail}</div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-brand-700">{invoice.description}</td>
-                    <td className="p-4 font-semibold text-brand-800">${invoice.amount.toFixed(2)}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                        invoice.status === 'paid' 
-                          ? 'bg-emerald-100/80 text-emerald-700'
-                          : invoice.status === 'overdue'
-                          ? 'bg-red-100/80 text-red-700'
-                          : 'bg-amber-100/80 text-amber-700'
-                      }`}>
-                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="p-4 text-brand-700">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {invoice.dueDate.toDate().toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      {invoice.isRecurring ? (
-                        <div className="flex items-center gap-1 text-brand-600">
-                          <Repeat className="w-4 h-4" />
-                          <span className="text-xs">
-                            {invoice.recurringFrequency ? `${invoice.recurringFrequency.charAt(0).toUpperCase() + invoice.recurringFrequency.slice(1)}` : 'Recurring'}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-brand-500">One-time</span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedInvoice(invoice)}
-                          className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditModal(invoice)}
-                          className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                          title="Edit Invoice"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleSendEmail(invoice)}
-                          className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                          title="Send Email"
-                        >
-                          <Mail className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-            
-                          {filteredInvoices.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-brand-600">No invoices found</p>
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="mt-4 px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 shadow-brand hover:shadow-brand-lg"
-                >
-                  Create Your First Invoice
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
           </>
         )}
 
@@ -1036,19 +1043,24 @@ export const Dashboard: React.FC = () => {
                 <h3 className="text-xl font-semibold text-brand-800">All Invoices</h3>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 w-4 h-4" />
                     <input
                       type="text"
                       placeholder="Search invoices..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 bg-white/60 border border-brand-200/60 rounded-xl text-brand-800 placeholder-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
+                      className="pl-10 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
                     />
                   </div>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-4 py-2 bg-white/60 border border-brand-200/60 rounded-xl text-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm"
+                    className="px-4 py-2 pr-10 bg-white/60 border border-brand-200/60 rounded-xl text-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent backdrop-blur-sm appearance-none bg-no-repeat bg-right"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundSize: '1.5em 1.5em'
+                    }}
                   >
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
@@ -1171,27 +1183,34 @@ export const Dashboard: React.FC = () => {
 
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
-          <ScheduleCalendar />
+          <ScheduleCalendar invoices={regularInvoices} />
         )}
       </main>
 
-      {isCreateModalOpen && (
-        <CreateInvoiceModal
-          isOpen={isCreateModalOpen}
-          onClose={handleCloseModal}
-          onCreateInvoice={handleCreateInvoice}
-          onEditInvoice={handleEditInvoice}
-          onCreateCustomer={handleCreateCustomer}
-          editingInvoice={editingInvoice}
-        />
-      )}
+      {/* Modals */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <CreateInvoiceModal
+            isOpen={isCreateModalOpen}
+            onClose={handleCloseModal}
+            onSubmit={handleCreateInvoice}
+            editingInvoice={editingInvoice}
+            onCreateCustomer={handleCreateCustomer}
+          />
+        )}
+      </AnimatePresence>
 
-      {selectedInvoice && (
-        <InvoiceDetails
-          invoice={selectedInvoice}
-          onClose={() => setSelectedInvoice(null)}
-        />
-      )}
+      <AnimatePresence>
+        {selectedInvoice && (
+          <InvoiceDetails
+            invoice={selectedInvoice}
+            isOpen={!!selectedInvoice}
+            onClose={() => setSelectedInvoice(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-}; 
+};
+
+export default Dashboard;
