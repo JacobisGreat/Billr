@@ -1,284 +1,563 @@
-# Billr - Modern React Invoice Platform
+# 🧾 Billr - Professional Invoice Management System
 
-> Get Paid, Without the Chase 🚀
+<div align="center">
 
-A cutting-edge React application built with modern design trends and animations that doesn't look like typical AI-generated code. Features glassmorphism, bento-style layouts, interactive animations, and human-centered UX.
+![Billr Logo](https://img.shields.io/badge/Billr-Professional%20Invoicing-2E75B0?style=for-the-badge&logo=receipt&logoColor=white)
+
+[![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-10.8.0-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-18.2.1-008CDD?style=flat&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Vite](https://img.shields.io/badge/Vite-5.1.0-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+
+**Get Paid Without The Chase** ⚡
+
+*A modern, full-stack invoicing solution built with React, Firebase, and Stripe*
+
+[🚀 Live Demo](#) • [📖 Documentation](#documentation) • [🐛 Report Bug](../../issues) • [✨ Request Feature](../../issues)
+
+</div>
+
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🛠 Tech Stack](#-tech-stack)
+- [🚀 Quick Start](#-quick-start)
+- [⚙️ Installation](#️-installation)
+- [🔧 Configuration](#-configuration)
+- [📱 Usage](#-usage)
+- [🏗 Architecture](#-architecture)
+- [🌐 Deployment](#-deployment)
+- [🧪 Testing](#-testing)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ## ✨ Features
 
-### 🎨 Modern Design Elements
-- **Glassmorphism & Neumorphism**: Beautiful glass-like components with depth
-- **Bento-Style Grid Layouts**: Organized, asymmetrical grid patterns
-- **Custom Cursor Effects**: Interactive cursor that responds to elements
-- **Gradient Text Animations**: Dynamic, animated text effects
-- **Typing Animations**: Realistic typewriter effects
-- **Scroll-Triggered Animations**: Content reveals on scroll
-- **Interactive Grid Patterns**: Hover-responsive background grids
-- **Glow Effects**: Subtle luminous aesthetics
-- **Floating Elements**: Organic background animations
+### 💼 Core Functionality
+- **📄 Invoice Management** - Create, edit, and manage professional invoices
+- **💳 Payment Processing** - Integrated Stripe payments with secure checkout
+- **📧 Email System** - Automated email sending with professional templates
+- **🔄 Recurring Invoices** - Set up automated recurring billing
+- **👥 Customer Management** - Organize and track customer information
+- **📊 Analytics Dashboard** - Revenue tracking and business insights
 
-### 🛠️ Technical Stack
-- **React 18** with TypeScript
-- **Framer Motion** for smooth animations
-- **Tailwind CSS** for styling
-- **Radix UI** components
-- **Vite** for fast development
-- **GSAP** for complex animations
-- **Three.js** for 3D elements
+### 🎨 User Experience
+- **📱 Responsive Design** - Perfect on desktop, tablet, and mobile
+- **🌙 Modern UI** - Beautiful glassmorphism design with smooth animations
+- **⚡ Real-time Updates** - Live data synchronization with Firebase
+- **🔍 Smart Search** - Filter and find invoices quickly
+- **📈 Visual Analytics** - Charts and graphs for business metrics
 
-### 🎯 Performance Features
-- Progressive loading with skeleton states
-- Error boundaries for graceful failure
-- Performance tracking and metrics
-- Optimized bundle splitting
-- Responsive design across all devices
+### 🔐 Security & Reliability
+- **🔒 Firebase Authentication** - Secure user management with Google OAuth
+- **🛡️ Firestore Security** - Row-level security with custom rules
+- **💰 Stripe Integration** - PCI-compliant payment processing
+- **☁️ Cloud Functions** - Server-side email processing
+- **📱 PWA Ready** - Offline support and mobile app functionality
+
+### 🎯 Business Features
+- **📅 Due Date Tracking** - Automatic overdue detection and reminders
+- **💌 Email Templates** - Professional, branded email communications
+- **📊 Revenue Analytics** - Track earnings, trends, and conversion rates
+- **📋 Line Items** - Detailed invoicing with quantities, taxes, and totals
+- **🏷️ Business Branding** - Custom business information and styling
+
+## 🛠 Tech Stack
+
+### Frontend
+```json
+{
+  "core": ["React 18", "TypeScript", "Vite"],
+  "styling": ["Tailwind CSS", "Framer Motion", "GSAP"],
+  "ui": ["Radix UI", "Lucide Icons", "React Calendar"],
+  "charts": ["Recharts"],
+  "utilities": ["Date-fns", "Class Variance Authority"]
+}
+```
+
+### Backend & Services
+```json
+{
+  "database": ["Firebase Firestore"],
+  "auth": ["Firebase Authentication"],
+  "functions": ["Firebase Cloud Functions"],
+  "payments": ["Stripe"],
+  "email": ["Resend", "EmailJS"],
+  "hosting": ["Firebase Hosting"]
+}
+```
+
+### Development
+```json
+{
+  "bundler": "Vite",
+  "language": "TypeScript",
+  "linting": "ESLint",
+  "package_manager": "npm",
+  "css": "PostCSS + Tailwind"
+}
+```
 
 ## 🚀 Quick Start
 
+### Prerequisites
+- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **Firebase CLI** ([Install Guide](https://firebase.google.com/docs/cli))
+- **Git** ([Download](https://git-scm.com/))
+
+### 1-Minute Setup
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/billr.git
+cd billr
+
 # Install dependencies
 npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Firebase and Stripe keys
 
 # Start development server
 npm run dev
 
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
+# Open your browser
+open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+## ⚙️ Installation
 
-## 🎨 Design Philosophy
+### 1. Clone and Install
+```bash
+git clone https://github.com/yourusername/billr.git
+cd billr
+npm install
+```
 
-This application follows modern web design trends for 2025:
+### 2. Environment Setup
+Create a `.env` file in the root directory:
 
-### Non-AI Generated Appearance
-- **Organic asymmetry**: Layouts that feel human-designed
-- **Intentional imperfections**: Subtle variations that add character
-- **Human-centered copy**: Natural, conversational language
-- **Unique color combinations**: Custom gradients and palettes
-- **Interactive storytelling**: Engaging user journey
+```env
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 
-### Modern Aesthetics
-- **Brutalism elements**: Bold, honest design choices
-- **Minimalism with personality**: Clean but distinctive
-- **Flash-era nostalgia**: Playful, interactive elements
-- **Sci-fi gaming UI**: Futuristic interface elements
+# Stripe Configuration
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
 
-## 📁 Project Structure
+# EmailJS Configuration (Optional)
+VITE_EMAILJS_SERVICE_ID=your_service_id
+VITE_EMAILJS_TEMPLATE_ID=your_template_id
+VITE_EMAILJS_PUBLIC_KEY=your_public_key
 
+# Company Information
+VITE_COMPANY_NAME=Your Company Name
+```
+
+### 3. Firebase Setup
+```bash
+# Login to Firebase
+firebase login
+
+# Initialize Firebase (if not already done)
+firebase init
+
+# Deploy Firestore rules and indexes
+firebase deploy --only firestore
+```
+
+### 4. Firebase Functions Setup
+```bash
+# Navigate to functions directory
+cd functions
+
+# Install dependencies
+npm install
+
+# Set Resend API key for email functions
+firebase functions:config:set resend.api_key="your_resend_api_key"
+
+# Start local emulator for development
+firebase emulators:start --only functions
+```
+
+## 🔧 Configuration
+
+### Firebase Configuration
+
+#### Firestore Security Rules
+The app uses these security rules for data protection:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only access their own data
+    match /invoices/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+#### Firestore Indexes
+Required indexes are defined in `firestore.indexes.json`:
+```json
+{
+  "indexes": [
+    {
+      "collectionGroup": "invoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "userId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    }
+  ]
+}
+```
+
+### Stripe Configuration
+
+#### Test Mode Setup
+```javascript
+// Use test keys for development
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+// Test card numbers
+4242 4242 4242 4242  // Visa
+4000 0000 0000 0002  // Declined card
+```
+
+#### Production Considerations
+- Switch to live keys (`pk_live_...`)
+- Set up webhooks for payment confirmation
+- Implement backend payment intent creation
+
+### Email Configuration
+
+#### Resend Setup (Recommended)
+1. Create account at [resend.com](https://resend.com)
+2. Add and verify your domain
+3. Get API key and add to Firebase Functions config
+4. Emails sent from: `invoices@billr.biz`
+
+#### EmailJS Setup (Alternative)
+1. Create account at [emailjs.com](https://emailjs.com)
+2. Set up email service (Gmail, Outlook, etc.)
+3. Create email template with variables
+4. Add credentials to `.env` file
+
+## 📱 Usage
+
+### Creating Your First Invoice
+
+1. **Sign Up/Login**
+   - Use email/password or Google OAuth
+   - Complete business profile setup
+
+2. **Create Invoice**
+   - Click "Create Invoice" button
+   - Fill in customer details
+   - Add line items with quantities and prices
+   - Set due date and payment terms
+   - Add notes or special instructions
+
+3. **Send Invoice**
+   - Click "Send Email" to deliver invoice
+   - Invoice includes professional branding
+   - Payment link automatically included
+
+4. **Track Payments**
+   - Monitor payment status in real-time
+   - Automatic status updates when paid
+   - Send payment reminders for overdue invoices
+
+### Dashboard Features
+
+#### 📊 Analytics Overview
+- **Revenue Metrics**: Track monthly/yearly earnings
+- **Invoice Status**: See pending, paid, and overdue counts
+- **Growth Trends**: Visual charts showing business growth
+- **Conversion Rates**: Monitor payment success rates
+
+#### 👥 Customer Management
+- **Customer Profiles**: Store contact information and history
+- **Invoice History**: See all invoices per customer
+- **Payment Tracking**: Monitor customer payment patterns
+- **Quick Actions**: Create new invoices for existing customers
+
+#### 🔄 Recurring Invoices
+- **Template Setup**: Create recurring invoice templates
+- **Automated Generation**: Automatic invoice creation
+- **Flexible Scheduling**: Weekly, monthly, quarterly, yearly
+- **Email Automation**: Automatic sending when generated
+
+### Advanced Features
+
+#### 📧 Email System
+```typescript
+// Send different types of emails
+await sendInvoiceEmail(invoiceId, 'invoice')           // New invoice
+await sendInvoiceEmail(invoiceId, 'payment_reminder')  // Overdue reminder
+await sendInvoiceEmail(invoiceId, 'payment_confirmation') // Payment received
+```
+
+#### 💳 Payment Processing
+```typescript
+// Create payment session
+const paymentData = {
+  amount: invoice.amount,
+  description: invoice.description,
+  invoiceId: invoice.id,
+  clientEmail: invoice.clientEmail
+}
+await stripeService.redirectToCheckout(paymentData)
+```
+
+## 🏗 Architecture
+
+### Component Structure
 ```
 src/
-├── components/           # Reusable UI components
-│   ├── AnimatedBeam.tsx     # Animated beam effects
-│   ├── BentoGrid.tsx        # Bento-style grid layout
-│   ├── CustomCursor.tsx     # Interactive cursor
-│   ├── FloatingElements.tsx # Background animations
-│   ├── GlassmorphismNav.tsx # Glass navigation
-│   ├── GlowCard.tsx         # Glowing card component
-│   ├── GradientText.tsx     # Animated gradient text
-│   ├── InteractiveGrid.tsx  # Hover-responsive grid
-│   ├── ScrollProgress.tsx   # Scroll progress indicator
-│   └── TypingAnimation.tsx  # Typewriter effect
-├── App.tsx              # Main application component
-├── main.tsx             # Application entry point
-└── index.css            # Global styles and utilities
+├── components/           # React components
+│   ├── Dashboard.tsx    # Main dashboard
+│   ├── AuthForms.tsx    # Authentication
+│   ├── CreateInvoiceModal.tsx
+│   ├── CustomerManagement.tsx
+│   └── PaymentPage.tsx
+├── contexts/            # React contexts
+│   └── AuthContext.tsx  # Authentication state
+├── hooks/               # Custom React hooks
+│   ├── useInvoices.ts   # Invoice management
+│   ├── useCustomers.ts  # Customer data
+│   └── useRecurringInvoices.ts
+├── services/            # External integrations
+│   ├── stripeService.ts # Payment processing
+│   └── emailService.ts  # Email sending
+└── firebase.ts          # Firebase configuration
 ```
 
-## 🎭 Component Showcase
+### Data Model
 
-### AnimatedBeam
-Creates flowing light effects across elements
-```tsx
-<AnimatedBeam className="absolute bottom-0 left-0 w-full h-0.5" />
-```
-
-### InteractiveGrid
-Responsive grid that lights up on hover
-```tsx
-<InteractiveGrid />
-```
-
-### GradientText
-Animated gradient text with hover effects
-```tsx
-<GradientText 
-  text="Your Text Here"
-  gradient="from-indigo-600 via-purple-600 to-pink-600"
-/>
-```
-
-### TypingAnimation
-Realistic typewriter effect
-```tsx
-<TypingAnimation 
-  text="Finally, Get Paid"
-  speed={100}
-  showCursor={true}
-/>
-```
-
-### GlowCard
-Glassmorphism card with glow effects
-```tsx
-<GlowCard className="p-8" intensity="medium">
-  <YourContent />
-</GlowCard>
-```
-
-## 🎨 Styling System
-
-### CSS Custom Properties
-The application uses a comprehensive design system:
-
-```css
-:root {
-  --primary: 262.1 83.3% 57.8%;
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  /* ... and many more */
+#### Invoice Schema
+```typescript
+interface Invoice {
+  id: string;
+  number: string;
+  description: string;
+  amount: number;
+  lineItems: LineItem[];
+  clientEmail: string;
+  clientName?: string;
+  status: 'draft' | 'pending' | 'paid' | 'overdue' | 'cancelled';
+  createdAt: Timestamp;
+  dueDate: Timestamp;
+  paidAt?: Timestamp;
+  userId: string;
+  isRecurring?: boolean;
+  recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
 }
 ```
 
-### Animation Classes
-```css
-.animate-float        /* Floating animation */
-.animate-glow         /* Glow pulse effect */
-.animate-shimmer      /* Shimmer effect */
-.animate-typing       /* Typewriter effect */
-.animate-grid-move    /* Grid movement */
-.animate-beam         /* Beam animation */
-```
-
-### Utility Classes
-```css
-.glass-card          /* Glassmorphism styling */
-.neo-card            /* Neumorphism styling */
-.gradient-text       /* Gradient text effect */
-.hover-glow          /* Hover glow effect */
-.cursor-custom       /* Custom cursor */
-```
-
-## 🔧 Customization
-
-### Colors
-Modify the color palette in `tailwind.config.js`:
-
-```js
-colors: {
-  electric: {
-    500: '#0ea5e9',
-    // ... more shades
-  },
-  neon: {
-    blue: '#00f3ff',
-    purple: '#9d4edd',
-    // ... more neon colors
-  }
+#### Customer Schema
+```typescript
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  totalInvoicesSent: number;
+  totalAmountPaid: number;
+  userId: string;
 }
 ```
 
-### Animations
-Add custom animations in `tailwind.config.js`:
-
-```js
-keyframes: {
-  'custom-animation': {
-    '0%': { transform: 'translateY(0)' },
-    '100%': { transform: 'translateY(-10px)' }
-  }
-}
+### Firebase Functions
+```
+functions/
+├── index.js             # Main functions file
+├── package.json         # Dependencies
+└── email-templates/     # Email HTML templates
+    ├── invoice.html
+    ├── reminder.html
+    └── confirmation.html
 ```
 
-## 📱 Responsive Design
+## 🌐 Deployment
 
-The application is fully responsive with:
-- Mobile-first approach
-- Adaptive grid layouts
-- Touch-friendly interactions
-- Optimized animations for mobile
-- Progressive enhancement
-
-## ♿ Accessibility
-
-- **Keyboard navigation** for all interactive elements
-- **Screen reader compatibility** with proper ARIA labels
-- **Reduced motion support** for users with motion sensitivity
-- **High contrast mode** support
-- **Focus indicators** for better navigation
-
-## 🔥 Performance Optimizations
-
-- **Code splitting** with dynamic imports
-- **Lazy loading** of components
-- **Image optimization** with proper formats
-- **Bundle analysis** for size optimization
-- **Caching strategies** for static assets
-
-## 🌟 Modern Web Standards
-
-- **ES2022** features and syntax
-- **Web Vitals** optimization
-- **Progressive Web App** capabilities
-- **Modern CSS** features (Grid, Flexbox, Custom Properties)
-- **Service Worker** for offline functionality
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-```
-
-### Netlify
+### Firebase Hosting
 ```bash
 # Build the project
 npm run build
 
-# Deploy dist folder to Netlify
+# Deploy to Firebase
+firebase deploy
+
+# Deploy specific services
+firebase deploy --only hosting
+firebase deploy --only functions
+firebase deploy --only firestore:rules
 ```
 
-### Docker
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
+### Environment Variables for Production
+```env
+# Production Firebase Config
+VITE_FIREBASE_API_KEY=prod_api_key
+VITE_FIREBASE_PROJECT_ID=prod_project_id
+
+# Production Stripe
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+# Production Email Domain
+VITE_COMPANY_EMAIL=invoices@yourdomain.com
+```
+
+### Custom Domain Setup
+1. Add custom domain in Firebase Hosting
+2. Update DNS records as instructed
+3. SSL certificate automatically provisioned
+4. Update email sending domain in Resend
+
+### Performance Optimization
+- **Code Splitting**: Automatic with Vite
+- **Image Optimization**: WebP format with fallbacks
+- **Lazy Loading**: Components loaded on demand
+- **CDN**: Firebase Hosting global CDN
+- **Caching**: Service worker for offline functionality
+
+## 🧪 Testing
+
+### Development Testing
+```bash
+# Run development server
+npm run dev
+
+# Run Firebase emulators
+firebase emulators:start
+
+# Test with demo data
+# Use test Stripe cards: 4242 4242 4242 4242
+```
+
+### Production Testing
+```bash
+# Build and preview
+npm run build
+npm run preview
+
+# Test production Firebase
+firebase use production
+firebase emulators:start --import=./test-data
+```
+
+### Payment Testing
+```javascript
+// Test card numbers
+const testCards = {
+  visa: '4242 4242 4242 4242',
+  declined: '4000 0000 0000 0002',
+  authentication: '4000 0027 6000 3184'
+}
 ```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Workflow
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'Add amazing feature'`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
+
+### Code Standards
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Airbnb configuration
+- **Prettier**: Code formatting
+- **Conventional Commits**: Commit message format
+- **Testing**: Jest and React Testing Library
+
+### Issues and Bugs
+- 🐛 [Report bugs](../../issues/new?template=bug_report.md)
+- ✨ [Request features](../../issues/new?template=feature_request.md)
+- 💬 [Ask questions](../../discussions)
+
+## 📚 Documentation
+
+### Additional Resources
+- [📧 Email Setup Guide](FIREBASE_EMAIL_SETUP.md)
+- [💳 Stripe Integration Guide](STRIPE_EMAIL_SETUP.md)
+- [🎨 Brand Guidelines](LOGO_SETUP.md)
+- [🔧 API Documentation](docs/api.md)
+- [🚀 Deployment Guide](docs/deployment.md)
+
+### API Reference
+```typescript
+// Invoice Management
+const { invoices, createInvoice, editInvoice, deleteInvoice } = useInvoices()
+
+// Customer Management  
+const { customers, createCustomer, updateCustomer } = useCustomers()
+
+// Email Services
+await emailService.sendInvoiceEmail(invoiceData)
+await emailService.sendPaymentReminder(invoiceData)
+```
+
+## 🏆 Credits & Acknowledgments
+
+### Open Source Libraries
+- [React](https://reactjs.org/) - UI library
+- [Firebase](https://firebase.google.com/) - Backend services
+- [Stripe](https://stripe.com/) - Payment processing
+- [Tailwind CSS](https://tailwindcss.com/) - Styling framework
+- [Framer Motion](https://framer.com/motion/) - Animations
+- [Radix UI](https://radix-ui.com/) - UI primitives
+
+### Design Inspiration
+- Modern invoice design patterns
+- Glassmorphism UI trends
+- Professional business applications
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+```
+MIT License
 
-- **Framer Motion** for incredible animation capabilities
-- **Tailwind CSS** for the utility-first CSS framework
-- **Radix UI** for accessible component primitives
-- **Animata** for animation inspiration
-- **Aceternity UI** for modern component ideas
+Copyright (c) 2024 Billr
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
 
 ---
 
-**Built with ❤️ and cutting-edge web technologies**
+<div align="center">
 
-*Finally, a React app that doesn't look like it was generated by AI* ✨ 
+**Made with ❤️ by the Billr Team**
+
+[⬆ Back to Top](#-billr---professional-invoice-management-system)
+
+</div> 
