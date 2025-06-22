@@ -8,6 +8,18 @@ const { Resend } = require('resend');
 // Define secret for Resend API key
 const resendApiKey = defineSecret('RESEND_API_KEY');
 
+// Get app URL from Firebase config (set via 'firebase functions:config:set app.url=URL')
+const getAppUrl = () => {
+  try {
+    const config = require('firebase-functions').config();
+    console.log('📍 Firebase config app.url:', config.app?.url);
+    return config.app?.url || 'http://localhost:3000';
+  } catch (error) {
+    console.error('❌ Error reading Firebase config:', error);
+    return 'http://localhost:3000';
+  }
+};
+
 initializeApp();
 const db = getFirestore();
 
@@ -49,13 +61,15 @@ exports.sendInvoiceEmail = onCall({ secrets: [resendApiKey] }, async (request) =
     const senderName = userProfile?.displayName || request.auth.token.name || 'Jacob';
     const senderEmail = userProfile?.email || request.auth.token.email || 'awesomejucob23@gmail.com';
 
-    // Generate payment link if it doesn't exist (include amount in URL for reliability)
-    if (!invoice.paymentLink) {
-      invoice.paymentLink = `${process.env.APP_URL || 'http://localhost:5173'}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
-      await db.collection('invoices').doc(invoiceId).update({
-        paymentLink: invoice.paymentLink
-      });
-    }
+    // Generate payment link (force regenerate to use current URL config)
+    const currentAppUrl = getAppUrl();
+    invoice.paymentLink = `${currentAppUrl}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
+    
+    console.log('🔗 Generated payment link:', invoice.paymentLink);
+    
+    await db.collection('invoices').doc(invoiceId).update({
+      paymentLink: invoice.paymentLink
+    });
 
     // Generate email content based on type
     let emailHtml, emailSubject;
@@ -569,7 +583,10 @@ exports.createPaymentLink = onCall(async (request) => {
     }
 
     // Generate demo payment link that points to our new PaymentPage component (include amount)
-    const paymentLink = `${process.env.APP_URL || 'http://localhost:5173'}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
+    const currentAppUrl = getAppUrl();
+    const paymentLink = `${currentAppUrl}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
+    
+    console.log('🔗 Generated payment link in createPaymentLink:', paymentLink);
 
     await db.collection('invoices').doc(invoiceId).update({
       paymentLink: paymentLink

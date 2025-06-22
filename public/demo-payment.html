@@ -71,10 +71,11 @@
         <h1>Billr Demo Payment</h1>
         <p>
             Experience how your customers will pay invoices with our professional payment gateway. 
-            This demo shows the complete payment flow without requiring any signups or real payment processing.
+            This demo shows the complete payment flow with a <strong>$89.99 invoice amount</strong> passed through the URL parameter - 
+            exactly how it works when customers receive invoice emails. No signups or real payments required.
         </p>
         
-        <a href="/pay/demo-invoice-12345" class="demo-button">
+        <a href="/pay/demo-invoice-12345?amount=89.99" class="demo-button">
             <span class="sparkle">✨</span> Try Demo Payment <span class="sparkle">✨</span>
         </a>
         
@@ -82,6 +83,7 @@
             <h3 style="color: #2E75B0; margin-bottom: 15px;">What you'll see:</h3>
             <ul style="padding-left: 20px;">
                 <li>Professional payment interface</li>
+                <li><strong>Amount loaded from URL parameter ($89.99)</strong></li>
                 <li>Secure-looking form with demo card data</li>
                 <li>Payment processing animation</li>
                 <li>Success confirmation with celebrations</li>

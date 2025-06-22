@@ -369,11 +369,7 @@ export const PaymentPage: React.FC = () => {
                   )}
                 </span>
               </div>
-              {urlAmount && (
-                <div className="text-xs text-green-600 mt-2 p-2 bg-green-50 rounded border border-green-200">
-                  💡 Amount loaded from payment link (${urlAmount}) - works even without database access!
-                </div>
-              )}
+
             </div>
           </div>
 
