@@ -3,7 +3,6 @@ import {
   collection, 
   query, 
   where, 
-  orderBy, 
   onSnapshot, 
   addDoc, 
   updateDoc, 
@@ -564,7 +563,7 @@ export const useInvoices = () => {
   };
 
   // Send invoice email
-  const sendInvoiceEmail = async (invoiceId: string): Promise<void> => {
+  const sendInvoiceEmail = async (_invoiceId: string): Promise<void> => {
     try {
       // TODO: Re-enable when Firebase Functions are deployed on Blaze plan
       console.log('Email feature temporarily disabled - upgrade to Blaze plan to enable');

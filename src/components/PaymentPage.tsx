@@ -11,8 +11,8 @@ import {
   ArrowLeft,
   AlertCircle,
   Sparkles,
-  Clock,
-  Italic
+  //Clock,
+  //Italic
 } from 'lucide-react';
 
 export const PaymentPage: React.FC = () => {
@@ -47,7 +47,7 @@ export const PaymentPage: React.FC = () => {
         const invoiceSnap = await getDoc(invoiceRef);
         
         if (invoiceSnap.exists()) {
-          const invoiceData = { id: invoiceSnap.id, ...invoiceSnap.data() };
+          const invoiceData = { id: invoiceSnap.id, ...invoiceSnap.data() } as any;
           console.log('✅ Found real invoice with amount:', invoiceData.amount, invoiceData);
           setInvoice(invoiceData);
           

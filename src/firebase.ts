@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 // Your web app's Firebase configuration from environment variables
@@ -49,9 +49,11 @@ if (import.meta.env.NODE_ENV === 'development' && import.meta.env.VITE_USE_EMULA
   console.log('🔥 Firebase initialized in development mode with emulator');
   
   // Connect to Functions emulator
-  if (!functions._delegate._url) {
+  try {
     console.log('🔧 Connecting to Firebase Functions emulator on localhost:5001');
     connectFunctionsEmulator(functions, 'localhost', 5001);
+  } catch (error) {
+    console.log('Functions emulator already connected or unavailable');
   }
 } else {
   console.log('🚀 Using production Firebase Functions');

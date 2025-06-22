@@ -216,6 +216,7 @@ export const useScheduling = () => {
   // Generate invoice data from scheduled invoice
   const generateInvoiceFromScheduled = (scheduled: ScheduledInvoice): CreateInvoiceData => {
     return {
+      title: scheduled.title,
       description: scheduled.description,
       lineItems: scheduled.lineItems,
       clientEmail: scheduled.clientEmail,

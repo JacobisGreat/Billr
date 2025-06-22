@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, lazy, Suspense, useCallback } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -12,8 +12,6 @@ const AuthForms = lazy(() => import('./components/AuthForms').then(module => ({ 
 const PaymentPage = lazy(() => import('./components/PaymentPage').then(module => ({ default: module.PaymentPage })));
 
 // Components
-import { AnimatedBeam } from './components/AnimatedBeam';
-import { InteractiveGrid } from './components/InteractiveGrid';
 import { GradientText } from './components/GradientText';
 import { TypingAnimation } from './components/TypingAnimation';
 import { GlowCard } from './components/GlowCard';
@@ -38,19 +36,19 @@ import {
 } from 'lucide-react';
 
 // Optimized animations for better performance
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: "easeOut" }
-};
+//const fadeInUp = {
+//  initial: { opacity: 0, y: 20 },
+//  animate: { opacity: 1, y: 0 },
+//  transition: { duration: 0.6, ease: "easeOut" }
+//};
 
-const staggerChildren = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
+//const staggerChildren = {
+//  animate: {
+//    transition: {
+//      staggerChildren: 0.1
+//    }
+//  }
+//};
 
 // Loading component for lazy loaded routes
 const RouteLoader = React.memo(() => (
@@ -177,7 +175,7 @@ const RouteLoader = React.memo(() => (
           />
           
           {/* Orbiting dots */}
-          {[0, 120, 240].map((rotation, index) => (
+          {[0, 120, 240].map((_, index) => (
             <motion.div
               key={index}
               animate={{ rotate: 360 }}
@@ -284,8 +282,8 @@ const RouteLoader = React.memo(() => (
 ));
 
 // Memoized components for better performance
-const OptimizedAnimatedBeam = React.memo(AnimatedBeam);
-const OptimizedInteractiveGrid = React.memo(InteractiveGrid);
+//const OptimizedAnimatedBeam = React.memo(AnimatedBeam);
+//const OptimizedInteractiveGrid = React.memo(InteractiveGrid);
 const OptimizedFloatingElements = React.memo(FloatingElements);
 const OptimizedGlassmorphismNav = React.memo(GlassmorphismNav);
 
@@ -335,12 +333,12 @@ const LandingPage = React.memo(() => {
   });
 
   // Memoized navigation handlers
-  const scrollToSection = useCallback((sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, []);
+  //const scrollToSection = useCallback((sectionId: string) => {
+  //  const element = document.getElementById(sectionId);
+  //  if (element) {
+  //    element.scrollIntoView({ behavior: 'smooth' });
+  //  }
+  //}, []);
 
   // Performance optimizations
   useEffect(() => {

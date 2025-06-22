@@ -1,53 +1,47 @@
 import React from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { MessageSquare, Clock, CreditCard, AlertTriangle, DollarSign } from 'lucide-react';
 
-interface ProblemCard {
-  title: string;
-  description: string;
-  icon: React.ComponentType<any>;
-  gradient: string;
-  size: 'large' | 'medium' | 'small';
-}
+// Interface removed as it's not being used
 
-const problems: ProblemCard[] = [
-  {
-    title: "\"I'll Venmo you later\"",
-    description: "Famous last words that never turn into actual payments",
-    icon: MessageSquare,
-    gradient: "from-red-500 to-orange-500",
-    size: 'large'
-  },
-  {
-    title: "Forgotten IOUs",
-    description: "Sticky notes everywhere, but still no money",
-    icon: AlertTriangle,
-    gradient: "from-amber-500 to-yellow-500",
-    size: 'medium'
-  },
-  {
-    title: "Payment Guessing Game",
-    description: "Was it $45 or $50? Did they already pay?",
-    icon: DollarSign,
-    gradient: "from-emerald-500 to-teal-500",
-    size: 'medium'
-  },
-  {
-    title: "Awkward Money Talks",
-    description: "The dreaded 'hey, remember that money?' conversation",
-    icon: CreditCard,
-    gradient: "from-blue-500 to-indigo-500",
-    size: 'small'
-  },
-  {
-    title: "The Waiting Game",
-    description: "Weeks pass, your time was free apparently",
-    icon: Clock,
-    gradient: "from-purple-500 to-pink-500",
-    size: 'small'
-  }
-];
-
+//const problems: ProblemCard[] = [
+//  {
+//    title: "\"I'll Venmo you later\"",
+//    description: "Famous last words that never turn into actual payments",
+//    icon: MessageSquare,
+//    gradient: "from-red-500 to-orange-500",
+//    size: 'large'
+//  },
+//  {
+//    title: "Forgotten IOUs",
+//    description: "Sticky notes everywhere, but still no money",
+//    icon: AlertTriangle,
+//    gradient: "from-amber-500 to-yellow-500",
+//    size: 'medium'
+//  },
+//  {
+//    title: "Payment Guessing Game",
+//    description: "Was it $45 or $50? Did they already pay?",
+//    icon: DollarSign,
+//    gradient: "from-emerald-500 to-teal-500",
+//    size: 'medium'
+//  },
+//  {
+//    title: "Awkward Money Talks",
+//    description: "The dreaded 'hey, remember that money?' conversation",
+//    icon: CreditCard,
+//    gradient: "from-blue-500 to-indigo-500",
+//    size: 'small'
+//  },
+//  {
+//    title: "The Waiting Game",
+//    description: "Weeks pass, your time was free apparently",
+//    icon: Clock,
+//    gradient: "from-purple-500 to-pink-500",
+//    size: 'small'
+//  }
+//];
+//
 // Enhanced animation variants for dramatic entrance
 const containerVariants = {
   hidden: { 
@@ -177,10 +171,22 @@ const shimmerVariants = {
 
 export const BentoGrid: React.FC = () => {
   const ref = React.useRef(null);
-  const isInView = useInView(ref, { 
-    threshold: 0.1,
-    triggerOnce: true
-  });
+  const [isInView, setIsInView] = React.useState(false);
+  
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <motion.div 

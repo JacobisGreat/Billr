@@ -190,6 +190,7 @@ export const useRecurringInvoices = () => {
   // Generate invoice from recurring template
   const generateInvoiceFromTemplate = (recurring: RecurringInvoice): CreateInvoiceData => {
     return {
+      title: `${recurring.templateName} - ${recurring.frequency} invoice`,
       description: `${recurring.templateName} - ${recurring.frequency} invoice`,
       lineItems: recurring.lineItems,
       clientEmail: recurring.clientEmail,

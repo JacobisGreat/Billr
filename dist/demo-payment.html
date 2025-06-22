@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Payment - Billr</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e1f5fe 100%);
+            margin: 0;
+            padding: 40px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #2E75B0;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+        p {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .demo-button {
+            background: linear-gradient(135deg, #2E75B0 0%, #4A9FD9 100%);
+            color: white;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(46, 117, 176, 0.4);
+        }
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(46, 117, 176, 0.5);
+        }
+        .features {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .features li {
+            margin: 10px 0;
+            color: #475569;
+        }
+        .sparkle {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Billr Demo Payment</h1>
+        <p>
+            Experience how your customers will pay invoices with our professional payment gateway. 
+            This demo shows the complete payment flow with a <strong>$89.99 invoice amount</strong> passed through the URL parameter - 
+            exactly how it works when customers receive invoice emails. No signups or real payments required.
+        </p>
+        
+        <a href="/pay/demo-invoice-12345?amount=89.99" class="demo-button">
+            <span class="sparkle">✨</span> Try Demo Payment <span class="sparkle">✨</span>
+        </a>
+        
+        <div class="features">
+            <h3 style="color: #2E75B0; margin-bottom: 15px;">What you'll see:</h3>
+            <ul style="padding-left: 20px;">
+                <li>Professional payment interface</li>
+                <li><strong>Amount loaded from URL parameter ($89.99)</strong></li>
+                <li>Secure-looking form with demo card data</li>
+                <li>Payment processing animation</li>
+                <li>Success confirmation with celebrations</li>
+                <li>Mobile-responsive design</li>
+            </ul>
+        </div>
+        
+        <p style="margin-top: 30px; font-size: 14px; color: #94a3b8;">
+            <strong>Note:</strong> This is a demonstration. No real payment will be processed, 
+            and no payment information is collected or stored.
+        </p>
+    </div>
+</body>
+</html> 

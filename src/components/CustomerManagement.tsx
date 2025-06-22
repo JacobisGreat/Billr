@@ -299,7 +299,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ invoices
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   const { 
-    customers, 
+    //customers, 
     loading, 
     error, 
     createCustomer, 

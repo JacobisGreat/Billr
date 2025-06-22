@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Share2, Download, Copy, CheckCircle, Repeat, Calendar, Clock, ChevronDown, Bell, FileText } from 'lucide-react';
+import { X, Mail, Share2, Copy, CheckCircle, Repeat, ChevronDown, Bell, FileText } from 'lucide-react';
 import { Invoice } from '../hooks/useInvoices';
 import { pdfService } from '../services/pdfService';
 

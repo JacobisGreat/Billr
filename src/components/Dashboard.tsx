@@ -29,12 +29,12 @@ import {
   AlertTriangle,
   CheckCircle,
   Edit3,
-  ExternalLink,
+  //ExternalLink,
   Trash2
 } from 'lucide-react';
 import { 
-  LineChart, 
-  Line, 
+  //LineChart, 
+  //Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -51,7 +51,6 @@ import {
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { stripeService } from '../services/stripeService';
 import { emailService, InvoiceEmailData } from '../services/emailService';
-import { pdfService } from '../services/pdfService';
 
 type DashboardTab = 'overview' | 'invoices' | 'customers' | 'schedule';
 
@@ -66,8 +65,7 @@ export const Dashboard: React.FC = () => {
     createCustomerFromInvoice,
     generateInvoiceFromTemplate,
     getTemplatesDueForGeneration,
-    getRecurringTemplates,
-    getInvoicesFromTemplate,
+    //getInvoicesFromTemplate,
     updateInvoiceEmailStatus
   } = useInvoices();
   const navigate = useNavigate();
@@ -123,8 +121,8 @@ export const Dashboard: React.FC = () => {
     paidAt: inv.paidAt?.toDate(),
     hasPaidAt: !!inv.paidAt
   })));
-  const recurringTemplates = getRecurringTemplates();
-  const templatesDue = getTemplatesDueForGeneration();
+  //const recurringTemplates = getRecurringTemplates();
+  //const templatesDue = getTemplatesDueForGeneration();
 
   const filteredInvoices = regularInvoices.filter(invoice => {
     const matchesSearch = (invoice.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -204,7 +202,7 @@ export const Dashboard: React.FC = () => {
       revenue: dayRevenue,
       count: dayInvoices.length
     };
-  }).filter((_, index, arr) => {
+  }).filter(() => {
     // Keep every day to ensure smooth graph - no filtering
     return true;
   });
@@ -329,18 +327,18 @@ export const Dashboard: React.FC = () => {
     setDeleteConfirmation({ isOpen: false, invoice: null });
   };
 
-  const handleDownloadPDF = async (invoice: Invoice) => {
-    try {
-      await pdfService.downloadInvoicePDF(
-        invoice,
-        userProfile?.displayName || currentUser?.displayName || 'Billr User',
-        userProfile?.email || currentUser?.email || 'contact@billr.biz',
-        import.meta.env.VITE_COMPANY_NAME || 'Billr'
-      );
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-    }
-  };
+  //const handleDownloadPDF = async (invoice: Invoice) => {
+  //  try {
+  //    await pdfService.downloadInvoicePDF(
+  //      invoice,
+  //      userProfile?.displayName || currentUser?.displayName || 'Billr User',
+  //      userProfile?.email || currentUser?.email || 'contact@billr.biz',
+  //      import.meta.env.VITE_COMPANY_NAME || 'Billr'
+  //    );
+  //  } catch (error) {
+  //    console.error('Error downloading PDF:', error);
+  //  }
+  //};
 
   const handleSendEmail = async (invoice: Invoice) => {
     try {
@@ -470,27 +468,27 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
     }
   };
 
-  const handlePayNow = async (invoice: Invoice) => {
-    try {
-      // Create payment session
-      const paymentData = {
-        amount: invoice.amount,
-        currency: 'usd',
-        description: invoice.description,
-        invoiceId: invoice.id,
-        clientEmail: invoice.clientEmail,
-        clientName: invoice.clientName,
-        successUrl: `${window.location.origin}/payment-success?invoice=${invoice.id}`,
-        cancelUrl: `${window.location.origin}/payment-cancelled?invoice=${invoice.id}`
-      };
-
-      // Redirect to Stripe Checkout
-      await stripeService.redirectToCheckout(paymentData);
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      alert('Error processing payment. Please try again.');
-    }
-  };
+  //const handlePayNow = async (invoice: Invoice) => {
+  //  try {
+  //    // Create payment session
+  //    const paymentData = {
+  //      amount: invoice.amount,
+  //      currency: 'usd',
+  //      description: invoice.description,
+  //      invoiceId: invoice.id,
+  //      clientEmail: invoice.clientEmail,
+  //      clientName: invoice.clientName,
+  //      successUrl: `${window.location.origin}/payment-success?invoice=${invoice.id}`,
+  //      cancelUrl: `${window.location.origin}/payment-cancelled?invoice=${invoice.id}`
+  //    };
+//
+  //    // Redirect to Stripe Checkout
+  //    await stripeService.redirectToCheckout(paymentData);
+  //  } catch (error) {
+  //    console.error('Error processing payment:', error);
+  //    alert('Error processing payment. Please try again.');
+  //  }
+  //};
 
   // Auto-generate invoices from due templates
   useEffect(() => {
@@ -656,7 +654,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
               />
               
               {/* Orbiting dots */}
-              {[0, 120, 240].map((rotation, index) => (
+              {[0, 120, 240].map((_, index) => (
                 <motion.div
                   key={index}
                   animate={{ rotate: 360 }}
@@ -899,7 +897,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
               />
               
               {/* Orbiting dots */}
-              {[0, 120, 240].map((rotation, index) => (
+              {[0, 120, 240].map((_, index) => (
                 <motion.div
                   key={index}
                   animate={{ rotate: 360 }}

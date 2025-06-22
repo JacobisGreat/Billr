@@ -37,22 +37,9 @@ export const ScheduleCalendar: React.FC = () => {
     });
   };
 
-  // Helper function to get all dates with invoices (due dates for unpaid, paid dates for paid)
-  const getInvoiceDates = (): string[] => {
-    const dates: string[] = [];
-    invoices.forEach(invoice => {
-      if (invoice.paidAt) {
-        // Use paid date for paid invoices
-        dates.push(format(invoice.paidAt.toDate(), 'yyyy-MM-dd'));
-      } else {
-        // Use due date for unpaid invoices
-        dates.push(format(invoice.dueDate.toDate(), 'yyyy-MM-dd'));
-      }
-    });
-    return dates;
-  };
+  // Helper function removed as it was not being used
 
-  const invoiceDates = getInvoiceDates();
+     // const invoiceDates = getInvoiceDates(); // Commented out as it's not being used
   const selectedDateInvoices = selectedDate ? getInvoicesForDate(selectedDate) : [];
 
   const handleDateClick = (date: Date) => {
