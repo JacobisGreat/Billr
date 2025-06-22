@@ -12,7 +12,7 @@
 
 **Get Paid Without The Chase** ⚡
 
-*A modern, full-stack invoicing solution built with React, Firebase, and Stripe*
+*A modern, full-stack invoicing solution built with React, and Firebase*
 
 [📖 Documentation](#documentation) • [🐛 Report Bug](../../issues) • [✨ Request Feature](../../issues)
 
@@ -36,7 +36,6 @@
 
 ### 💼 Core Functionality
 - **📄 Invoice Management** - Create, edit, and manage professional invoices
-- **💳 Payment Processing** - Integrated Stripe payments with secure checkout
 - **📧 Email System** - Automated email sending with professional templates
 - **🔄 Recurring Invoices** - Set up automated recurring billing
 - **👥 Customer Management** - Organize and track customer information
@@ -52,7 +51,6 @@
 ### 🔐 Security & Reliability
 - **🔒 Firebase Authentication** - Secure user management with Google OAuth
 - **🛡️ Firestore Security** - Row-level security with custom rules
-- **💰 Stripe Integration** - PCI-compliant payment processing
 - **☁️ Cloud Functions** - Server-side email processing
 - **📱 PWA Ready** - Offline support and mobile app functionality
 
@@ -82,7 +80,6 @@
   "database": ["Firebase Firestore"],
   "auth": ["Firebase Authentication"],
   "functions": ["Firebase Cloud Functions"],
-  "payments": ["Stripe"],
   "email": ["Resend", "EmailJS"],
   "hosting": ["Firebase Hosting"]
 }
@@ -117,7 +114,6 @@ npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your Firebase and Stripe keys
 
 # Start development server
 npm run dev
@@ -147,8 +143,6 @@ VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 
-# Stripe Configuration
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
 
 # EmailJS Configuration (Optional)
 VITE_EMAILJS_SERVICE_ID=your_service_id
@@ -226,17 +220,6 @@ Required indexes are defined in `firestore.indexes.json`:
 }
 ```
 
-### Stripe Configuration
-
-#### Test Mode Setup
-```javascript
-// Use test keys for development
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-// Test card numbers
-4242 4242 4242 4242  // Visa
-4000 0000 0000 0002  // Declined card
-```
 
 #### Production Considerations
 - Switch to live keys (`pk_live_...`)
@@ -312,17 +295,7 @@ await sendInvoiceEmail(invoiceId, 'payment_reminder')  // Overdue reminder
 await sendInvoiceEmail(invoiceId, 'payment_confirmation') // Payment received
 ```
 
-#### 💳 Payment Processing
-```typescript
-// Create payment session
-const paymentData = {
-  amount: invoice.amount,
-  description: invoice.description,
-  invoiceId: invoice.id,
-  clientEmail: invoice.clientEmail
-}
-await stripeService.redirectToCheckout(paymentData)
-```
+
 
 ## 🏗 Architecture
 
@@ -342,7 +315,6 @@ src/
 │   ├── useCustomers.ts  # Customer data
 │   └── useRecurringInvoices.ts
 ├── services/            # External integrations
-│   ├── stripeService.ts # Payment processing
 │   └── emailService.ts  # Email sending
 └── firebase.ts          # Firebase configuration
 ```
@@ -416,8 +388,7 @@ firebase deploy --only firestore:rules
 VITE_FIREBASE_API_KEY=prod_api_key
 VITE_FIREBASE_PROJECT_ID=prod_project_id
 
-# Production Stripe
-VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
+
 
 # Production Email Domain
 VITE_COMPANY_EMAIL=invoices@yourdomain.com
@@ -438,17 +409,6 @@ VITE_COMPANY_EMAIL=invoices@yourdomain.com
 
 ## 🧪 Testing
 
-### Development Testing
-```bash
-# Run development server
-npm run dev
-
-# Run Firebase emulators
-firebase emulators:start
-
-# Test with demo data
-# Use test Stripe cards: 4242 4242 4242 4242
-```
 
 ### Production Testing
 ```bash
@@ -498,7 +458,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ### Additional Resources
 - [📧 Email Setup Guide](FIREBASE_EMAIL_SETUP.md)
-- [💳 Stripe Integration Guide](STRIPE_EMAIL_SETUP.md)
 - [🎨 Brand Guidelines](LOGO_SETUP.md)
 - [🔧 API Documentation](docs/api.md)
 - [🚀 Deployment Guide](docs/deployment.md)
@@ -521,7 +480,6 @@ await emailService.sendPaymentReminder(invoiceData)
 ### Open Source Libraries
 - [React](https://reactjs.org/) - UI library
 - [Firebase](https://firebase.google.com/) - Backend services
-- [Stripe](https://stripe.com/) - Payment processing
 - [Tailwind CSS](https://tailwindcss.com/) - Styling framework
 - [Framer Motion](https://framer.com/motion/) - Animations
 - [Radix UI](https://radix-ui.com/) - UI primitives
