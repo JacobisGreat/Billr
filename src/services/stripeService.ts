@@ -111,8 +111,9 @@ class StripeService {
   // Generate a shareable payment link (for email)
   generatePaymentUrl(invoiceId: string, amount: number): string {
     // This would typically be a link to your payment page
+    // Including amount in URL as backup for when database access fails
     const baseUrl = window.location.origin;
-    return `${baseUrl}/pay/${invoiceId}?amount=${amount}`;
+    return `${baseUrl}/pay/${invoiceId}?amount=${amount.toFixed(2)}`;
   }
 
   // Verify payment status

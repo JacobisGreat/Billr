@@ -46,8 +46,16 @@ exports.sendInvoiceEmail = onCall({ secrets: [resendApiKey] }, async (request) =
     // Get user profile for sender information
     const userDoc = await db.collection('users').doc(request.auth.uid).get();
     const userProfile = userDoc.data();
-    const senderName = userProfile?.displayName || 'Billr User';
-    const senderEmail = userProfile?.email || 'user@billr.biz';
+    const senderName = userProfile?.displayName || request.auth.token.name || 'Jacob';
+    const senderEmail = userProfile?.email || request.auth.token.email || 'awesomejucob23@gmail.com';
+
+    // Generate payment link if it doesn't exist (include amount in URL for reliability)
+    if (!invoice.paymentLink) {
+      invoice.paymentLink = `${process.env.APP_URL || 'http://localhost:5173'}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
+      await db.collection('invoices').doc(invoiceId).update({
+        paymentLink: invoice.paymentLink
+      });
+    }
 
     // Generate email content based on type
     let emailHtml, emailSubject;
@@ -68,7 +76,7 @@ exports.sendInvoiceEmail = onCall({ secrets: [resendApiKey] }, async (request) =
       } else {
         emailSubject = `⏰ Payment Reminder - Invoice #${invoice.number}`;
       }
-      emailHtml = generatePaymentReminderHTML(invoice, senderName);
+      emailHtml = generatePaymentReminderHTML(invoice, senderName, senderEmail);
     } else {
       emailSubject = `📄 Invoice #${invoice.number} - Payment Request`;
       emailHtml = generateInvoiceHTML(invoice, senderName, userProfile);
@@ -114,7 +122,7 @@ exports.sendInvoiceEmail = onCall({ secrets: [resendApiKey] }, async (request) =
     };
 
   } catch (error) {
-    console.error('❌ Error sending invoice email:', error);
+    console.error('Error sending invoice email:', error);
     throw new Error(`Failed to send email: ${error.message}`);
   }
 });
@@ -128,131 +136,182 @@ function generateInvoiceHTML(invoice, senderName, userProfile) {
   });
 
   return `
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="en">
-<head>
+      <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice #${invoice.number}</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; color: #1e293b;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      </head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f9; color: #1e293b; line-height: 1.5;">
+    
+    <!-- Email Container -->
+    <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
         
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 32px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
+        <!-- Header Section -->
+        <div style="background: linear-gradient(135deg, #2E75B0 0%, #3B8BC7 50%, #4A9FD9 100%); padding: 48px 40px 48px 40px; text-align: center; position: relative;">
+            <h1 style="margin: 0 0 8px 0; color: #ffffff; font-size: 36px; font-weight: 800; letter-spacing: -1px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                 Billr
             </h1>
-            <p style="margin: 8px 0 0 0; color: #e2e8f0; font-size: 16px;">
-                Invoice Request
+            <p style="margin: 0; color: #B8E2F2; font-size: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                Professional Invoice
             </p>
-        </div>
-
-        <!-- Content -->
-        <div style="padding: 40px 32px;">
-            <div style="text-align: center; margin-bottom: 32px;">
-                <h2 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 600; color: #1e293b;">
+          </div>
+          
+        <!-- Main Content -->
+        <div style="padding: 48px 40px;">
+            
+            <!-- Greeting Section -->
+            <div style="text-align: center; margin-bottom: 48px;">
+                <h2 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #1e293b;">
                     Hi ${invoice.clientName || 'there'}! 👋
                 </h2>
-                <p style="margin: 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+                <p style="margin: 0; font-size: 18px; color: #64748b; line-height: 1.7; max-width: 500px; margin-left: auto; margin-right: auto;">
                     I hope this email finds you well. Here's your invoice for our recent work together.
                 </p>
             </div>
 
-            <!-- Invoice Details Card -->
-            <div style="background-color: #f8fafc; border-radius: 12px; padding: 32px; margin-bottom: 32px; border: 1px solid #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #334155;">
+            <!-- Invoice Information Card -->
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #e1f5fe 100%); border-radius: 16px; padding: 40px; margin-bottom: 40px; border: 2px solid #B8E2F2; box-shadow: 0 4px 20px rgba(46, 117, 176, 0.08);">
+                
+                <!-- Header Row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #B8E2F2;">
+                    <h3 style="margin: 0; font-size: 24px; font-weight: 800; color: #2E75B0;">
                         Invoice Details
                     </h3>
-                    <span style="background-color: #ddd6fe; color: #7c3aed; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <div style="background: #2E75B0; color: #ffffff; padding: 12px 24px; border-radius: 30px; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(46, 117, 176, 0.3);">
                         #${invoice.number}
-                    </span>
+                    </div>
                 </div>
                 
-                <div style="margin-bottom: 24px;">
-                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: 500;">
-                        DESCRIPTION
-                    </p>
-                    <p style="margin: 0; font-size: 16px; color: #1e293b; line-height: 1.5;">
-                        ${invoice.description}
-                    </p>
+                <!-- Invoice Details Table -->
+                <div style="margin-bottom: 40px;">
+                    <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #2E75B0, #3B8BC7);">
+                                <th style="padding: 20px; text-align: left; color: #ffffff; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                                    Service Description
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 24px 20px; border: none; font-size: 18px; color: #1e293b; font-weight: 500; line-height: 1.6;">
+                                    ${invoice.description}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; padding: 0 8px;">
-                    <div>
-                        <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: 500;">
-                            AMOUNT DUE
-                        </p>
-                        <p style="margin: 0; font-size: 24px; color: #059669; font-weight: 700;">
-                            $${invoice.amount.toFixed(2)}
-                        </p>
+                <!-- Amount Due Section -->
+                <div style="text-align: center; padding: 32px; background: linear-gradient(135deg, #ffffff, #f0f9ff); border-radius: 16px; border: 3px solid #89CFF0; margin-bottom: 32px;">
+                    <p style="margin: 0 0 16px 0; font-size: 16px; color: #3B8BC7; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;">
+                        Total Amount Due
+                    </p>
+                    <div style="margin: 0 0 24px 0; font-size: 64px; color: #2E75B0; font-weight: 900; text-shadow: 0 2px 4px rgba(46, 117, 176, 0.2); line-height: 1;">
+                        $${invoice.amount.toFixed(2)}
                     </div>
-                    <div style="text-align: right;">
-                        <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: 500;">
-                            DUE DATE
-                        </p>
-                        <p style="margin: 0; font-size: 16px; color: #1e293b; font-weight: 600;">
-                            ${dueDate}
+                    <div style="display: inline-block; background: linear-gradient(135deg, #4A9FD9, #77C3EC); padding: 12px 32px; border-radius: 25px; box-shadow: 0 4px 12px rgba(119, 195, 236, 0.3);">
+                        <p style="margin: 0; font-size: 16px; color: #ffffff; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                            Due: ${dueDate}
                         </p>
                     </div>
                 </div>
 
                 ${invoice.notes ? `
-                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: 500;">
-                        ADDITIONAL NOTES
+                <!-- Additional Notes Section -->
+                <div style="margin-top: 32px; padding: 24px; background: #f8fafc; border-radius: 12px; border-left: 4px solid #3B8BC7;">
+                    <p style="margin: 0 0 16px 0; font-size: 14px; color: #3B8BC7; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                        Additional Notes
                     </p>
-                    <p style="margin: 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                    <p style="margin: 0; font-size: 16px; color: #475569; line-height: 1.7; font-weight: 500;">
                         ${invoice.notes}
                     </p>
                 </div>
                 ` : ''}
             </div>
 
-            <!-- Payment Button -->
-            <div style="text-align: center; margin-bottom: 32px;">
-                <a href="${invoice.paymentLink || '#'}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); transition: all 0.2s ease;">
-                    💳 Pay Now - $${invoice.amount.toFixed(2)}
+            <!-- Payment Action Section -->
+            <div style="text-align: center; margin-bottom: 48px; padding: 40px 32px; background: linear-gradient(135deg, #f8fafc 0%, #e1f5fe 100%); border-radius: 20px; border: 2px solid #B8E2F2;">
+                <h3 style="margin: 0 0 32px 0; font-size: 24px; font-weight: 800; color: #2E75B0;">
+                    Ready to Pay?
+                </h3>
+                <a href="${invoice.paymentLink || '#'}" style="display: inline-block; background: linear-gradient(135deg, #2E75B0 0%, #4A9FD9 100%); color: #ffffff; text-decoration: none; padding: 24px 56px; border-radius: 16px; font-weight: 800; font-size: 20px; letter-spacing: 0.5px; box-shadow: 0 12px 32px rgba(46, 117, 176, 0.4); text-shadow: 0 1px 2px rgba(0,0,0,0.2); transform: scale(1); transition: all 0.3s ease;">
+                    Pay $${invoice.amount.toFixed(2)} Now
                 </a>
-                <p style="margin: 12px 0 0 0; font-size: 14px; color: #64748b;">
-                    Secure payment processing
-                </p>
+                <div style="margin-top: 24px;">
+                    <p style="margin: 0 0 8px 0; font-size: 16px; color: #3B8BC7; font-weight: 600;">
+                        Secure Payment • SSL Encrypted • Instant Processing
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #64748b; font-style: italic;">
+                        Powered by industry-leading security standards
+                    </p>
+                </div>
             </div>
-
-            <!-- Message -->
-            <div style="text-align: center; margin-bottom: 32px;">
-                <p style="margin: 0; font-size: 16px; color: #475569; line-height: 1.6;">
-                    Thank you for your business! If you have any questions about this invoice, 
-                    please don't hesitate to reach out.
-                </p>
+            
+            <!-- Payment Methods Section -->
+            <div style="margin-bottom: 48px; padding: 32px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <h4 style="margin: 0 0 24px 0; font-size: 18px; font-weight: 700; color: #1e293b; text-align: center;">
+                    Payment Methods Accepted
+                </h4>
+            <div style="text-align: center;">
+                    <p style="margin: 0; font-size: 16px; color: #64748b; line-height: 1.6;">
+                        We accept all major credit cards, bank transfers, and digital payments. 
+                        Click the "Pay Now" button above for secure, instant payment processing.
+                    </p>
+                </div>
             </div>
-
-            <!-- Contact Info -->
-            <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; text-align: center;">
-                <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: 500;">
-                    QUESTIONS? CONTACT ME:
+            
+            <!-- Thank You Message -->
+            <div style="text-align: center; margin-bottom: 40px; padding: 32px; background: linear-gradient(135deg, #ffffff, #f0f9ff); border-radius: 12px; border: 1px solid #B8E2F2;">
+                <p style="margin: 0; font-size: 18px; color: #475569; line-height: 1.7; font-weight: 500; max-width: 480px; margin-left: auto; margin-right: auto;">
+                    Thank you for choosing our services! If you have any questions about this invoice, please reach out anytime.
                 </p>
-                <p style="margin: 0 0 4px 0; font-size: 16px; color: #334155; font-weight: 600;">
-                    ${senderName}
-                </p>
-                <p style="margin: 0; font-size: 14px; color: #64748b;">
-                    ${userProfile?.email || 'contact@billr.biz'}
-                </p>
+          </div>
+          
+            <!-- Contact Information -->
+            <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius: 12px; padding: 32px; text-align: center; border: 1px solid #cbd5e1;">
+                <h4 style="margin: 0 0 20px 0; font-size: 16px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                    Questions? Contact Me:
+                </h4>
+                <div style="margin-bottom: 12px;">
+                    <p style="margin: 0; font-size: 20px; color: #1e293b; font-weight: 700;">
+                        ${senderName}
+                    </p>
+                </div>
+                <div>
+                    <a href="mailto:${userProfile?.email || 'contact@billr.biz'}" style="color: #2E75B0; text-decoration: none; font-size: 16px; font-weight: 600;">
+                        ${userProfile?.email || 'contact@billr.biz'}
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div style="background-color: #f8fafc; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
-            <p style="margin: 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-                This invoice was sent from <strong>Billr</strong><br>
-                Powered by <span style="color: #7c3aed; font-weight: 600;">Billr</span> ✨
-            </p>
+        <!-- Footer Section -->
+        <div style="background: linear-gradient(135deg, #2E75B0 0%, #3B8BC7 100%); padding: 40px; text-align: center; position: relative;">
+            <div style="margin-bottom: 16px;">
+                <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: 700;">
+                    This invoice was sent from <span style="color: #B8E2F2; font-weight: 800;">Billr</span>
+                </p>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 16px; color: #B8E2F2; font-weight: 600;">
+                    Professional invoicing made simple
+                </p>
+            </div>
+            <div style="padding-top: 20px; border-top: 1px solid rgba(184, 226, 242, 0.3);">
+                <p style="margin: 0; font-size: 14px; color: #9DD9F3; font-weight: 500;">
+                    Secure • Reliable • Professional
+                </p>
+          </div>
         </div>
+        
     </div>
-</body>
-</html>
-  `;
+    
+      </body>
+      </html>
+    `;
 }
 
 // Generate payment confirmation HTML
@@ -269,11 +328,14 @@ function generatePaymentConfirmationHTML(invoice, senderName) {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 32px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
-                Payment Received! 🎉
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 50%, #34d399 100%); padding: 40px 32px; text-align: center; position: relative; overflow: hidden;">
+            <!-- Subtle pattern overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3;"></div>
+            
+            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; position: relative; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Payment Received!
             </h1>
-            <p style="margin: 8px 0 0 0; color: #d1fae5; font-size: 16px;">
+            <p style="margin: 12px 0 0 0; color: #d1fae5; font-size: 16px; position: relative; font-weight: 500;">
                 Thank you for your payment
             </p>
         </div>
@@ -332,7 +394,7 @@ function generatePaymentConfirmationHTML(invoice, senderName) {
 }
 
 // Generate payment reminder HTML
-function generatePaymentReminderHTML(invoice, senderName) {
+function generatePaymentReminderHTML(invoice, senderName, senderEmail) {
   const daysOverdue = Math.floor((new Date().getTime() - new Date(invoice.dueDate.toDate()).getTime()) / (1000 * 60 * 60 * 24));
   const isOverdue = daysOverdue > 0;
 
@@ -348,11 +410,14 @@ function generatePaymentReminderHTML(invoice, senderName) {
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, ${isOverdue ? '#ef4444 0%, #dc2626 100%' : '#f59e0b 0%, #d97706 100%'}); padding: 40px 32px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">
-                ${isOverdue ? '⚠️ Payment Overdue' : '⏰ Payment Reminder'}
+        <div style="background: linear-gradient(135deg, ${isOverdue ? '#dc2626 0%, #ef4444 50%, #f87171 100%' : '#2E75B0 0%, #f59e0b 50%, #d97706 100%'}); padding: 40px 32px; text-align: center; position: relative; overflow: hidden;">
+            <!-- Subtle pattern overlay -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 30px 30px; opacity: 0.3;"></div>
+            
+            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; position: relative; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                ${isOverdue ? 'Payment Overdue' : 'Payment Reminder'}
             </h1>
-            <p style="margin: 8px 0 0 0; color: #fef3c7; font-size: 16px;">
+            <p style="margin: 12px 0 0 0; color: ${isOverdue ? '#fee2e2' : '#fef3c7'}; font-size: 16px; position: relative; font-weight: 500;">
                 Invoice #${invoice.number}
             </p>
         </div>
@@ -394,16 +459,16 @@ function generatePaymentReminderHTML(invoice, senderName) {
                     ${isOverdue ? `
                     <div style="background-color: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin-top: 20px;">
                         <p style="margin: 0; font-size: 15px; color: #991b1b; font-weight: 600; line-height: 1.4;">
-                            ⚠️ <strong>Overdue by ${daysOverdue} day${daysOverdue === 1 ? '' : 's'}</strong>
+                            <strong>Overdue by ${daysOverdue} day${daysOverdue === 1 ? '' : 's'}</strong>
                         </p>
                         <p style="margin: 8px 0 0 0; font-size: 14px; color: #7f1d1d; line-height: 1.4;">
-                            Please submit payment as soon as possible to avoid late fees.
+                            Please submit payment as soon as possible to bring your account current.
                         </p>
                     </div>
                     ` : `
                     <div style="background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin-top: 20px;">
                         <p style="margin: 0; font-size: 15px; color: #92400e; font-weight: 600; line-height: 1.4;">
-                            ⏰ <strong>Payment Due Soon</strong>
+                            <strong>Payment Due Soon</strong>
                         </p>
                         <p style="margin: 8px 0 0 0; font-size: 14px; color: #78350f; line-height: 1.4;">
                             Please ensure payment is made by the due date.
@@ -416,23 +481,52 @@ function generatePaymentReminderHTML(invoice, senderName) {
             <!-- Payment Button -->
             <div style="text-align: center; margin-bottom: 32px;">
                 <a href="${invoice.paymentLink || '#'}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
-                    💳 Pay Now - $${invoice.amount.toFixed(2)}
+                    Pay Now - $${invoice.amount.toFixed(2)}
                 </a>
             </div>
 
             <p style="margin: 0; font-size: 16px; color: #475569; line-height: 1.6; text-align: center;">
                 ${isOverdue ? 
                   `We understand that sometimes payments can be delayed. This invoice was originally due on <strong>${new Date(invoice.dueDate.toDate()).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong> and is now ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue. Please submit payment as soon as possible to bring your account up to date. If you need to discuss payment arrangements, please contact us immediately.` :
-                  'Thank you for your business! Please ensure payment is made by the due date to avoid any late fees.'
+                  'Thank you for your business! Please ensure payment is made by the due date.'
                 }
             </p>
         </div>
 
+        <!-- Contact Information -->
+        <div style="background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius: 12px; padding: 32px; margin: 24px 32px; text-align: center; border: 1px solid #cbd5e1;">
+            <h4 style="margin: 0 0 20px 0; font-size: 16px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                Questions? Contact Me:
+            </h4>
+            <div style="margin-bottom: 12px;">
+                <p style="margin: 0; font-size: 20px; color: #1e293b; font-weight: 700;">
+                    ${senderName}
+                </p>
+            </div>
+            <div>
+                <a href="mailto:${senderEmail}" style="color: #2E75B0; text-decoration: none; font-size: 16px; font-weight: 600;">
+                    ${senderEmail}
+                </a>
+            </div>
+        </div>
+
         <!-- Footer -->
-        <div style="background-color: #f8fafc; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
-            <p style="margin: 0; font-size: 14px; color: #64748b;">
-                Questions? Contact us at <strong>${senderName}</strong>
-            </p>
+        <div style="background: linear-gradient(135deg, #2E75B0 0%, #3B8BC7 100%); padding: 40px; text-align: center; position: relative;">
+            <div style="margin-bottom: 16px;">
+                <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: 700;">
+                    This reminder was sent from <span style="color: #B8E2F2; font-weight: 800;">Billr</span>
+                </p>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 16px; color: #B8E2F2; font-weight: 600;">
+                    Professional invoicing made simple
+                </p>
+            </div>
+            <div style="padding-top: 20px; border-top: 1px solid rgba(184, 226, 242, 0.3);">
+                <p style="margin: 0; font-size: 14px; color: #9DD9F3; font-weight: 500;">
+                    Secure • Reliable • Professional
+                </p>
+            </div>
         </div>
     </div>
 </body>
@@ -474,8 +568,8 @@ exports.createPaymentLink = onCall(async (request) => {
       throw new Error('Access denied');
     }
 
-    // This would create a real payment link with Stripe, PayPal, etc.
-    const paymentLink = `${process.env.APP_URL || 'https://billr.biz'}/pay/${invoice.number}`;
+    // Generate demo payment link that points to our new PaymentPage component (include amount)
+    const paymentLink = `${process.env.APP_URL || 'http://localhost:5173'}/pay/${invoiceId}?amount=${invoice.amount.toFixed(2)}`;
 
     await db.collection('invoices').doc(invoiceId).update({
       paymentLink: paymentLink

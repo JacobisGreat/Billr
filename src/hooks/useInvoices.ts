@@ -421,7 +421,7 @@ export const useInvoices = () => {
         const templateDocRef = await addDoc(collectionRef, templateData);
         console.log('🔄 Recurring template created successfully with ID:', templateDocRef.id);
       }
-
+      
       return docRef.id;
     } catch (error: any) {
       console.error('🚨 Full error creating invoice:', error);

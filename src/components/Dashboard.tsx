@@ -8,6 +8,7 @@ import { CreateInvoiceModal } from './CreateInvoiceModal';
 import { InvoiceDetails } from './InvoiceDetails';
 import { CustomerManagement } from './CustomerManagement';
 import { ScheduleCalendar } from './ScheduleCalendar';
+import { PaymentGatewayBanner } from './PaymentGatewayBanner';
 import { 
   Plus, 
   TrendingUp, 
@@ -30,7 +31,8 @@ import {
   CheckCircle,
   Edit3,
   ExternalLink,
-  Bell
+  Bell,
+  Trash2
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -77,6 +79,11 @@ export const Dashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [showMoreWidgets, setShowMoreWidgets] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    invoice: Invoice | null;
+  }>({ isOpen: false, invoice: null });
+  const [showPaymentBanner, setShowPaymentBanner] = useState(true);
 
   // Helper function to get correct invoice status (including overdue detection)
   const getInvoiceStatus = (invoice: Invoice): 'paid' | 'pending' | 'overdue' | 'draft' | 'cancelled' => {
@@ -171,66 +178,36 @@ export const Dashboard: React.FC = () => {
     ? ((advancedStats.thisMonthRevenue - advancedStats.lastMonthRevenue) / advancedStats.lastMonthRevenue) * 100 
     : 0;
 
-  // Revenue trend data (last 30 days) - use actual paid date
+  // Revenue trend data (last 30 days) - improved logic
   const revenueTrendData = eachDayOfInterval({
     start: last30Days,
     end: currentDate
   }).map(date => {
     const dayInvoices = regularInvoices.filter(inv => {
-      // Only include actually paid invoices with valid paidAt dates
-      if (inv.status !== 'paid' || !inv.paidAt) {
-        return false;
-      }
+      // Only include actually paid invoices
+      if (inv.status !== 'paid') return false;
       
-      try {
-        const paidDate = inv.paidAt.toDate();
-        const now = new Date();
-        
-        // Safety check: only include reasonable paid dates
-        // Not in the future (beyond today) and not older than 2 years
-        const twoYearsAgo = new Date();
-        twoYearsAgo.setFullYear(now.getFullYear() - 2);
-        
-        if (paidDate > now || paidDate < twoYearsAgo) {
-          console.warn('Unreasonable paidAt date for invoice:', inv.id, {
-            paidAt: paidDate,
-            description: inv.description,
-            amount: inv.amount
-          });
-          return false;
-        }
-        
-        const currentDateStr = format(date, 'yyyy-MM-dd');
-        const paidDateStr = format(paidDate, 'yyyy-MM-dd');
-        
-        return paidDateStr === currentDateStr;
-      } catch (error) {
-        console.warn('Invalid paidAt date for invoice:', inv.id, inv.paidAt);
-        return false;
-      }
+      // Use paidAt if available, otherwise use createdAt for backward compatibility
+      const paymentDate = inv.paidAt ? inv.paidAt.toDate() : inv.createdAt.toDate();
+      
+      // Simple date comparison - same day
+      const dayStr = format(date, 'yyyy-MM-dd');
+      const paymentStr = format(paymentDate, 'yyyy-MM-dd');
+      
+      return dayStr === paymentStr;
     });
     
     const dayRevenue = dayInvoices.reduce((sum, inv) => sum + inv.amount, 0);
     
-    // Debug logging for the spike day
-    if (dayRevenue > 1000) {
-      console.log('🚨 High revenue day detected:', {
-        date: format(date, 'MMM dd'),
-        revenue: dayRevenue,
-        invoiceCount: dayInvoices.length,
-        invoices: dayInvoices.map(inv => ({
-          id: inv.id,
-          amount: inv.amount,
-          paidAt: inv.paidAt?.toDate(),
-          description: inv.description
-        }))
-      });
-    }
-    
     return {
-      date: format(date, 'MMM dd'),
-      revenue: dayRevenue
+      name: format(date, 'MMM d'), // Simplified format for X-axis
+      date: format(date, 'MMM d'),
+      revenue: dayRevenue,
+      count: dayInvoices.length
     };
+  }).filter((_, index, arr) => {
+    // Keep every day to ensure smooth graph - no filtering
+    return true;
   });
 
   // Status breakdown for pie chart
@@ -331,6 +308,26 @@ export const Dashboard: React.FC = () => {
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
     setEditingInvoice(null);
+  };
+
+  const handleDeleteClick = (invoice: Invoice) => {
+    setDeleteConfirmation({ isOpen: true, invoice });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmation.invoice) return;
+    
+    try {
+      await deleteInvoice(deleteConfirmation.invoice.id);
+      setDeleteConfirmation({ isOpen: false, invoice: null });
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      alert('Failed to delete invoice. Please try again.');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmation({ isOpen: false, invoice: null });
   };
 
   const handleSendEmail = async (invoice: Invoice) => {
@@ -520,7 +517,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
           <div className="absolute inset-0 grid-bg opacity-20" />
           
           {/* Floating animated orbs */}
-          <motion.div
+        <motion.div 
             animate={{ 
               y: [0, -30, 0], 
               x: [0, 20, 0],
@@ -675,7 +672,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
             {/* Loading text with typing effect */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
               className="space-y-3"
             >
@@ -700,7 +697,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                   }}
                   className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-full"
                 />
-              </div>
+          </div>
               
               <motion.p
                 animate={{ opacity: [0.6, 0.9, 0.6] }}
@@ -763,7 +760,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
           <div className="absolute inset-0 grid-bg opacity-20" />
           
           {/* Floating animated orbs */}
-          <motion.div
+        <motion.div 
             animate={{ 
               y: [0, -30, 0], 
               x: [0, 20, 0],
@@ -918,7 +915,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
             {/* Loading text with typing effect */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
               className="space-y-3"
             >
@@ -943,7 +940,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                   }}
                   className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-full"
                 />
-              </div>
+          </div>
               
               <motion.p
                 animate={{ opacity: [0.6, 0.9, 0.6] }}
@@ -1019,22 +1016,28 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                   }}
                 />
                 <span className="hidden text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-800 via-brand-700 to-brand-900">
-                  Billr
+                Billr
                 </span>
               </button>
             </div>
                       <div className="flex items-center space-x-6">
-            <span className="text-zinc-700">Welcome, {currentUser?.displayName || currentUser?.email}</span>
-            <button
-              onClick={logout}
+              <span className="text-zinc-700">Welcome, {currentUser?.displayName || currentUser?.email}</span>
+              <button
+                onClick={logout}
               className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl font-medium shadow-brand hover:shadow-brand-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2"
-            >
-              Sign Out
-            </button>
-          </div>
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Payment Gateway Banner */}
+      <PaymentGatewayBanner 
+        isVisible={showPaymentBanner} 
+        onDismiss={() => setShowPaymentBanner(false)} 
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -1099,7 +1102,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                       <span className={`text-xs ml-1 ${monthlyGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                         {Math.abs(monthlyGrowth).toFixed(1)}% vs last month
                       </span>
-                    </div>
+              </div>
               </div>
                   <div className="p-3 bg-emerald-100 rounded-xl">
                     <DollarSign className="w-6 h-6 text-emerald-600" />
@@ -1186,17 +1189,20 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                 </div>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={revenueTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <AreaChart data={revenueTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
                       <XAxis 
-                        dataKey="date" 
+                        dataKey="name"
                         stroke="#64748b"
-                        fontSize={12}
+                        fontSize={11}
                         tick={{ fill: '#64748b' }}
+                        tickLine={false}
+                        axisLine={false}
+                        interval="preserveStartEnd"
                       />
                       <YAxis 
                         stroke="#64748b"
-                        fontSize={12}
+                        fontSize={11}
                         tick={{ fill: '#64748b' }}
                         tickFormatter={(value) => `$${value}`}
                       />
@@ -1491,32 +1497,32 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                         className="border-b border-brand-200/20 hover:bg-brand-100/20 transition-colors"
-                      >
-                        <td className="p-4">
-                          <div>
+                  >
+                    <td className="p-4">
+                      <div>
                             <div className="font-medium text-brand-800">{invoice.clientName || 'No name'}</div>
                             <div className="text-sm text-brand-600">{invoice.clientEmail}</div>
-                          </div>
-                        </td>
+                      </div>
+                    </td>
                         <td className="p-4 text-brand-700">{invoice.description}</td>
                         <td className="p-4 font-semibold text-brand-800">${invoice.amount.toFixed(2)}</td>
-                        <td className="p-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
-                            invoice.status === 'paid' 
-                              ? 'bg-emerald-100/80 text-emerald-700'
-                              : invoice.status === 'overdue'
-                              ? 'bg-red-100/80 text-red-700'
-                              : 'bg-amber-100/80 text-amber-700'
-                          }`}>
-                            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                          </span>
-                        </td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${
+                        invoice.status === 'paid' 
+                          ? 'bg-emerald-100/80 text-emerald-700'
+                          : invoice.status === 'overdue'
+                          ? 'bg-red-100/80 text-red-700'
+                          : 'bg-amber-100/80 text-amber-700'
+                      }`}>
+                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                      </span>
+                    </td>
                         <td className="p-4 text-brand-700">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {invoice.dueDate.toDate().toLocaleDateString()}
-                          </div>
-                        </td>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {invoice.dueDate.toDate().toLocaleDateString()}
+                      </div>
+                    </td>
                         <td className="p-4">
                           {invoice.isRecurring ? (
                             <div className="flex items-center gap-1 text-brand-600">
@@ -1528,16 +1534,16 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                           ) : (
                             <span className="text-xs text-brand-500">One-time</span>
                           )}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedInvoice(invoice)}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedInvoice(invoice)}
                               className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
-                              title="View Details"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                             <button
                               onClick={() => handleOpenEditModal(invoice)}
                               className="p-2 text-brand-600 hover:text-brand-800 hover:bg-brand-100/40 rounded-lg transition-all duration-200"
@@ -1546,17 +1552,17 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                               <Edit3 className="w-4 h-4" />
                             </button>
                             {invoice.status !== 'paid' && (
-                              <button
-                                onClick={() => handleSendEmail(invoice)}
+                        <button
+                          onClick={() => handleSendEmail(invoice)}
                                 className={`p-2 rounded-lg transition-all duration-200 ${
                                   invoice.emailSent 
                                     ? 'text-green-600 hover:text-green-800 hover:bg-green-100/40' 
                                     : 'text-brand-600 hover:text-brand-800 hover:bg-brand-100/40'
                                 }`}
                                 title={invoice.emailSent ? "Email Sent - Send Again" : "Send Email"}
-                              >
-                                <Mail className="w-4 h-4" />
-                              </button>
+                        >
+                          <Mail className="w-4 h-4" />
+                        </button>
                             )}
                             {invoice.status === 'overdue' && (
                               <button
@@ -1576,15 +1582,22 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                                 <CreditCard className="w-4 h-4" />
                               </button>
                             )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-                
-                {filteredInvoices.length === 0 && (
-                  <div className="text-center py-12">
+                            <button
+                              onClick={() => handleDeleteClick(invoice)}
+                              className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100/40 rounded-lg transition-all duration-200"
+                              title="Delete Invoice"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredInvoices.length === 0 && (
+              <div className="text-center py-12">
                     <p className="text-brand-600">No invoices found</p>
                   </div>
                 )}
@@ -1630,8 +1643,8 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                     <option value="paid">Paid</option>
                     <option value="overdue">Overdue</option>
                   </select>
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
                     className="px-4 py-2 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl hover:from-brand-700 hover:to-brand-800 transition-all duration-300 flex items-center gap-2 shadow-brand hover:shadow-brand-lg"
                   >
                     <Plus className="w-4 h-4" />
@@ -1746,6 +1759,13 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                             <CreditCard className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteClick(invoice)}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100/40 rounded-lg transition-all duration-200"
+                          title="Delete Invoice"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -1776,7 +1796,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
 
       {/* Modals */}
       <AnimatePresence>
-            {isCreateModalOpen && (
+      {isCreateModalOpen && (
         <CreateInvoiceModal
           isOpen={isCreateModalOpen}
           onClose={handleCloseModal}
@@ -1795,6 +1815,60 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
           onClose={() => setSelectedInvoice(null)}
           onSendEmail={handleSendEmail}
         />
+      )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+      {deleteConfirmation.isOpen && deleteConfirmation.invoice && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-brand-800">Delete Invoice</h3>
+                <p className="text-brand-600 text-sm">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-brand-700 mb-2">
+                Are you sure you want to delete this invoice?
+              </p>
+              <div className="p-4 bg-brand-50 rounded-lg border border-brand-200">
+                <p className="font-medium text-brand-800">
+                  {deleteConfirmation.invoice.clientName || 'No name'} - ${deleteConfirmation.invoice.amount.toFixed(2)}
+                </p>
+                <p className="text-sm text-brand-600">
+                  {deleteConfirmation.invoice.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteCancel}
+                className="flex-1 px-4 py-2 bg-brand-100 text-brand-700 rounded-xl hover:bg-brand-200 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium"
+              >
+                Delete Invoice
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
       </AnimatePresence>
     </div>

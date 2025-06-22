@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 // Lazy load heavy components for better performance
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
 const AuthForms = lazy(() => import('./components/AuthForms').then(module => ({ default: module.AuthForms })));
+const PaymentPage = lazy(() => import('./components/PaymentPage').then(module => ({ default: module.PaymentPage })));
 
 // Components
 import { AnimatedBeam } from './components/AnimatedBeam';
@@ -301,6 +302,7 @@ const App: React.FC = () => {
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/pay/:invoiceId" element={<PaymentPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -623,52 +625,182 @@ const HeroSection: React.FC = () => {
 
 const ProblemSection: React.FC = () => {
   const [ref, inView] = useInView({
-    threshold: 0.2,
+    threshold: 0.1,
     triggerOnce: true,
   });
 
   return (
-    <section ref={ref} className="py-20 px-4 relative">
-      <div className="max-w-6xl mx-auto">
+    <section ref={ref} className="py-20 px-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 pointer-events-none">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={inView ? { opacity: 0.05, scale: 1 } : {}}
+          transition={{ duration: 2, delay: 0.5 }}
+          className="absolute top-20 left-20 w-64 h-64 bg-red-500 rounded-full blur-3xl"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={inView ? { opacity: 0.05, scale: 1 } : {}}
+          transition={{ duration: 2, delay: 0.8 }}
+          className="absolute bottom-20 right-20 w-48 h-48 bg-orange-500 rounded-full blur-3xl"
+        />
+      </div>
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 80, scale: 0.8 }}
+          animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ 
+            duration: 1.2, 
+            ease: [0.25, 0.46, 0.45, 0.94],
+            type: "spring",
+            stiffness: 100
+          }}
           className="text-center mb-16"
         >
-          <h2 className="text-5xl font-bold mb-6 text-brand-800 font-display">
+          <motion.h2 
+            initial={{ opacity: 0 }}
+            animate={inView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="text-5xl font-bold mb-6 text-brand-800 font-display"
+          >
             Still chasing payments like it's a{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.6,
+                type: "spring",
+                stiffness: 200
+              }}
+              className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500"
+            >
               part-time job?
-            </span>
-          </h2>
+            </motion.span>
+          </motion.h2>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0, x: -100, rotateY: -45 }}
+            animate={inView ? { opacity: 1, x: 0, rotateY: 0 } : {}}
+            transition={{ 
+              duration: 1.0, 
+              delay: 0.4,
+              ease: [0.25, 0.46, 0.45, 0.94]
+            }}
             className="space-y-8 text-center lg:text-left"
           >
-            <p className="text-xl text-brand-700 leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0, y: 30 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="text-xl text-brand-700 leading-relaxed"
+            >
               You know the drill. Another tutoring session ends. Another "I'll Venmo you later" that never comes. 
               You're stuck sending awkward reminders, losing track of who owes what, and feeling unprofessional 
               asking for your own money.
-            </p>
+            </motion.p>
             
-            <p className="text-xl text-brand-700 leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0, y: 30 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.8, delay: 1.0 }}
+              className="text-xl text-brand-700 leading-relaxed"
+            >
               Meanwhile, you've got actual work to do—not playing debt collector for money you've already earned.
-            </p>
+            </motion.p>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            initial={{ 
+              opacity: 0, 
+              x: 100, 
+              rotateY: 45,
+              scale: 0.7
+            }}
+            animate={inView ? { 
+              opacity: 1, 
+              x: 0, 
+              rotateY: 0,
+              scale: 1
+            } : {}}
+            transition={{ 
+              duration: 1.2, 
+              delay: 0.6,
+              ease: [0.25, 0.46, 0.45, 0.94],
+              type: "spring",
+              stiffness: 80
+            }}
             className="flex justify-center"
           >
-            <BentoGrid />
+            {/* Enhanced container for BentoGrid with dramatic entrance */}
+            <motion.div
+              initial={{ 
+                boxShadow: "0 0 0 rgba(59, 130, 246, 0)",
+                scale: 0.8
+              }}
+              animate={inView ? { 
+                boxShadow: "0 25px 50px rgba(59, 130, 246, 0.15)",
+                scale: 1
+              } : {}}
+              transition={{ 
+                duration: 1.5, 
+                delay: 0.8,
+                ease: "easeOut"
+              }}
+              className="relative"
+            >
+              {/* Magical glow effect around widgets */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={inView ? { opacity: 0.6, scale: 1.2 } : {}}
+                transition={{ 
+                  duration: 2, 
+                  delay: 1.0,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  ease: "easeInOut"
+                }}
+                className="absolute -inset-4 bg-gradient-to-r from-red-500/20 via-orange-500/20 to-amber-500/20 rounded-3xl blur-xl"
+              />
+              
+              {/* Particles floating around widgets */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ 
+                      opacity: 0,
+                      x: Math.random() * 400 - 200,
+                      y: Math.random() * 400 - 200,
+                      scale: 0
+                    }}
+                    animate={inView ? {
+                      opacity: [0, 0.6, 0],
+                      x: Math.random() * 200 - 100,
+                      y: Math.random() * 200 - 100,
+                      scale: [0, 1, 0]
+                    } : {}}
+                    transition={{
+                      duration: 3 + Math.random() * 2,
+                      delay: 1.2 + i * 0.2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute w-2 h-2 bg-gradient-to-r from-red-400 to-orange-400 rounded-full"
+                    style={{
+                      left: `${20 + Math.random() * 60}%`,
+                      top: `${20 + Math.random() * 60}%`
+                    }}
+                  />
+                ))}
+              </div>
+              
+              <BentoGrid />
+            </motion.div>
           </motion.div>
         </div>
       </div>
