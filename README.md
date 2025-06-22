@@ -15,7 +15,7 @@
 
 *A modern, full-stack invoicing solution built with React, Firebase, and Stripe*
 
-[🚀 Live Demo](#) • [📖 Documentation](#documentation) • [🐛 Report Bug](../../issues) • [✨ Request Feature](../../issues)
+[📖 Documentation](#documentation) • [🐛 Report Bug](../../issues) • [✨ Request Feature](../../issues)
 
 </div>
 
