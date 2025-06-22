@@ -80,10 +80,10 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -100 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-4 px-4 shadow-lg z-30"
+        className="relative bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 text-white py-4 px-4 shadow-xl shadow-brand-500/25 z-30"
       >
         {/* Animated background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-indigo-600/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-600/95 via-brand-700/95 to-brand-800/95" />
         <motion.div
           animate={{ 
             backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
@@ -131,7 +131,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
               onClick={handleSetupClick}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-6 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 flex items-center gap-2 shadow-lg"
+              className="px-6 py-2 bg-white text-brand-700 rounded-lg font-semibold hover:bg-brand-50 hover:text-brand-800 transition-all duration-200 flex items-center gap-2 shadow-lg"
             >
               <Building className="w-4 h-4" />
               Demo Setup
@@ -200,7 +200,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
               {!setupComplete ? (
                 <>
                   {/* Header */}
-                  <div className="p-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                  <div className="p-6 bg-gradient-to-r from-brand-600 to-brand-700 text-white">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold">Demo Payment Setup</h3>
                       <button
@@ -237,8 +237,8 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                         animate={{ opacity: 1, x: 0 }}
                         className="text-center"
                       >
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Building className="w-8 h-8 text-blue-600" />
+                        <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Building className="w-8 h-8 text-brand-600" />
                         </div>
                         <h4 className="text-lg font-semibold text-gray-800 mb-2">
                           Connect Your Bank Account
@@ -246,7 +246,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                         <p className="text-gray-600 mb-4">
                           In a real setup, you'd securely connect your bank account to receive payments directly.
                         </p>
-                        <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+                        <div className="p-3 bg-brand-50 rounded-lg text-sm text-brand-800">
                           <strong>Demo Mode:</strong> No actual bank connection required
                         </div>
                       </motion.div>
@@ -258,8 +258,8 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                         animate={{ opacity: 1, x: 0 }}
                         className="text-center"
                       >
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Shield className="w-8 h-8 text-green-600" />
+                        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Shield className="w-8 h-8 text-emerald-600" />
                         </div>
                         <h4 className="text-lg font-semibold text-gray-800 mb-2">
                           Security Verification
@@ -279,8 +279,8 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                         animate={{ opacity: 1, x: 0 }}
                         className="text-center"
                       >
-                        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <CreditCard className="w-8 h-8 text-purple-600" />
+                        <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <CreditCard className="w-8 h-8 text-brand-600" />
                         </div>
                         <h4 className="text-lg font-semibold text-gray-800 mb-2">
                           Configure Payment Methods
@@ -303,7 +303,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                       onClick={handleNextStep}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full mt-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                      className="w-full mt-6 py-3 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-lg font-semibold hover:from-brand-700 hover:to-brand-800 transition-all duration-200"
                     >
                       {currentStep === 3 ? 'Complete Setup' : 'Continue'}
                     </motion.button>
@@ -319,9 +319,9 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                    className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6"
                   >
-                    <CheckCircle className="w-10 h-10 text-green-600" />
+                    <CheckCircle className="w-10 h-10 text-emerald-600" />
                   </motion.div>
                   
                   <h4 className="text-xl font-bold text-gray-800 mb-2">
@@ -331,8 +331,8 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                     Your demo payment gateway is now configured. In production, you'd be ready to accept real payments directly to your bank account.
                   </p>
                   
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-800">
+                  <div className="p-4 bg-gradient-to-r from-emerald-50 to-brand-50 rounded-lg border border-emerald-200">
+                    <p className="text-sm text-emerald-800">
                       <strong>What's Next:</strong> Send invoices with payment links and watch money flow directly to your account!
                     </p>
                   </div>

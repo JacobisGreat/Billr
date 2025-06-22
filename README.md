@@ -81,7 +81,6 @@
   "auth": ["Firebase Authentication"],
   "functions": ["Firebase Cloud Functions"],
   "email": ["Resend", "EmailJS"],
-  "hosting": ["Firebase Hosting"]
 }
 ```
 
@@ -368,18 +367,11 @@ functions/
 
 ## 🌐 Deployment
 
-### Firebase Hosting
+### Firebase Vercel
 ```bash
 # Build the project
 npm run build
 
-# Deploy to Firebase
-firebase deploy
-
-# Deploy specific services
-firebase deploy --only hosting
-firebase deploy --only functions
-firebase deploy --only firestore:rules
 ```
 
 ### Environment Variables for Production
@@ -395,7 +387,7 @@ VITE_COMPANY_EMAIL=invoices@yourdomain.com
 ```
 
 ### Custom Domain Setup
-1. Add custom domain in Firebase Hosting
+1. Add custom domain in Vercel Hosting
 2. Update DNS records as instructed
 3. SSL certificate automatically provisioned
 4. Update email sending domain in Resend
@@ -404,7 +396,7 @@ VITE_COMPANY_EMAIL=invoices@yourdomain.com
 - **Code Splitting**: Automatic with Vite
 - **Image Optimization**: WebP format with fallbacks
 - **Lazy Loading**: Components loaded on demand
-- **CDN**: Firebase Hosting global CDN
+- **CDN**: Vercel Hosting global CDN
 - **Caching**: Service worker for offline functionality
 
 ## 🧪 Testing
