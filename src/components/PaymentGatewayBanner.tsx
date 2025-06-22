@@ -23,6 +23,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [setupComplete, setSetupComplete] = useState(false);
+  const [modalTop, setModalTop] = useState(0);
 
   const handleSetupClick = () => {
     setShowSetupModal(true);
@@ -46,6 +47,29 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
     setSetupComplete(false);
   };
 
+  // Center modal in current viewport when it opens
+  React.useEffect(() => {
+    if (showSetupModal) {
+      // Capture the current scroll position when modal opens
+      const currentScrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      
+      // Center the modal in the current viewport
+      setModalTop(currentScrollY + (viewportHeight * 0.15)); // 15% from top of current view
+      
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore body scroll when modal is closed
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showSetupModal]);
+
   if (!isVisible) return null;
 
   return (
@@ -56,7 +80,7 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -100 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-4 px-4 shadow-lg z-40"
+        className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white py-4 px-4 shadow-lg z-30"
       >
         {/* Animated background */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-indigo-600/90" />
@@ -150,14 +174,29 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
       {/* Setup Modal */}
       <AnimatePresence>
         {showSetupModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-hidden">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              onClick={handleCloseModal}
+            />
+            <div 
+              className="absolute left-1/2 transform -translate-x-1/2 w-full max-w-md px-4"
+              style={{ 
+                top: `${modalTop}px`,
+                zIndex: 51
+              }}
             >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white rounded-2xl shadow-2xl w-full overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
               {!setupComplete ? (
                 <>
                   {/* Header */}
@@ -299,7 +338,8 @@ export const PaymentGatewayBanner: React.FC<PaymentGatewayBannerProps> = ({
                   </div>
                 </motion.div>
               )}
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>

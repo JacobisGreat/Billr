@@ -11,7 +11,8 @@ import {
   ArrowLeft,
   AlertCircle,
   Sparkles,
-  Clock
+  Clock,
+  Italic
 } from 'lucide-react';
 
 export const PaymentPage: React.FC = () => {
@@ -268,7 +269,7 @@ export const PaymentPage: React.FC = () => {
                 </p>
                 {realInvoiceUpdated ? (
                   <p className="text-xs text-green-600 mt-2">
-                    ✅ The original invoice has been marked as paid in your dashboard
+                    ✅ The original invoice has been marked as paid in the dashboard
                   </p>
                 ) : (
                   <p className="text-xs text-blue-600 mt-2">
@@ -278,16 +279,16 @@ export const PaymentPage: React.FC = () => {
               </div>
 
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
-                {realInvoiceUpdated ? 'Return to Dashboard' : 'Return to Billr'}
+                {realInvoiceUpdated ? 'Visit Dashboard' : 'Visit Billr'}
               </button>
               
               {realInvoiceUpdated && (
                 <p className="text-xs text-green-600 text-center">
-                  💡 Check your dashboard to see the updated invoice status
+                    Thank you!!
                 </p>
               )}
             </motion.div>

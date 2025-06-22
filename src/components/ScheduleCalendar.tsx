@@ -185,8 +185,11 @@ export const ScheduleCalendar: React.FC = () => {
                 color: #1e40af;
               }
               .react-calendar__month-view__days__day--active {
-                background-color: #3b82f6 !important;
-                color: white !important;
+                background-color: rgba(59, 130, 246, 0.08) !important;
+                color: #374151 !important;
+                font-weight: 600;
+                border: 1px solid rgba(59, 130, 246, 0.25) !important;
+                box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1) !important;
               }
               .react-calendar__month-view__days__day--neighboringMonth {
                 color: #d1d5db;

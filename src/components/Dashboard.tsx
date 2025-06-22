@@ -12,7 +12,6 @@ import { PaymentGatewayBanner } from './PaymentGatewayBanner';
 import { 
   Plus, 
   TrendingUp, 
-  CreditCard, 
   Clock, 
   Search, 
   Calendar, 
@@ -31,7 +30,6 @@ import {
   CheckCircle,
   Edit3,
   ExternalLink,
-  Bell,
   Trash2
 } from 'lucide-react';
 import { 
@@ -53,6 +51,7 @@ import {
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { stripeService } from '../services/stripeService';
 import { emailService, InvoiceEmailData } from '../services/emailService';
+import { pdfService } from '../services/pdfService';
 
 type DashboardTab = 'overview' | 'invoices' | 'customers' | 'schedule';
 
@@ -136,7 +135,7 @@ export const Dashboard: React.FC = () => {
 
   const stats = {
     totalEarnings: regularInvoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
-    pendingAmount: regularInvoices.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0),
+    pendingAmount: regularInvoices.filter(i => i.status === 'pending' || i.status === 'overdue').reduce((sum, i) => sum + i.amount, 0),
     totalInvoices: regularInvoices.length,
     paidInvoices: regularInvoices.filter(i => i.status === 'paid').length,
   };
@@ -328,6 +327,19 @@ export const Dashboard: React.FC = () => {
 
   const handleDeleteCancel = () => {
     setDeleteConfirmation({ isOpen: false, invoice: null });
+  };
+
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      await pdfService.downloadInvoicePDF(
+        invoice,
+        userProfile?.displayName || currentUser?.displayName || 'Billr User',
+        userProfile?.email || currentUser?.email || 'contact@billr.biz',
+        import.meta.env.VITE_COMPANY_NAME || 'Billr'
+      );
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
   };
 
   const handleSendEmail = async (invoice: Invoice) => {
@@ -1564,24 +1576,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                           <Mail className="w-4 h-4" />
                         </button>
                             )}
-                            {invoice.status === 'overdue' && (
-                              <button
-                                onClick={() => console.log('Send reminder for:', invoice.id)}
-                                className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-100/40 rounded-lg transition-all duration-200"
-                                title="Send Reminder"
-                              >
-                                <Bell className="w-4 h-4" />
-                              </button>
-                            )}
-                            {invoice.status !== 'paid' && (
-                              <button
-                                onClick={() => handlePayNow(invoice)}
-                                className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100/40 rounded-lg transition-all duration-200"
-                                title="Pay Now"
-                              >
-                                <CreditCard className="w-4 h-4" />
-                              </button>
-                            )}
+
                             <button
                               onClick={() => handleDeleteClick(invoice)}
                               className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100/40 rounded-lg transition-all duration-200"
@@ -1741,24 +1736,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
                             <Mail className="w-4 h-4" />
                           </button>
                         )}
-                        {invoice.status === 'overdue' && (
-                          <button
-                            onClick={() => console.log('Send reminder for:', invoice.id)}
-                            className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-100/40 rounded-lg transition-all duration-200"
-                            title="Send Reminder"
-                          >
-                            <Bell className="w-4 h-4" />
-                          </button>
-                        )}
-                        {invoice.status !== 'paid' && (
-                          <button
-                            onClick={() => handlePayNow(invoice)}
-                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100/40 rounded-lg transition-all duration-200"
-                            title="Pay Now"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                          </button>
-                        )}
+
                         <button
                           onClick={() => handleDeleteClick(invoice)}
                           className="p-2 text-red-600 hover:text-red-800 hover:bg-red-100/40 rounded-lg transition-all duration-200"
@@ -1790,7 +1768,7 @@ ${userProfile?.displayName || currentUser?.displayName || 'Your Name'}
 
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
-          <ScheduleCalendar invoices={regularInvoices} />
+          <ScheduleCalendar />
         )}
       </main>
 

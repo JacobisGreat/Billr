@@ -46,7 +46,8 @@ class EmailService {
 
       const result = await this.sendInvoiceEmailFunction({
         invoiceId: data.invoiceId,
-        emailType: 'invoice'
+        emailType: 'invoice',
+        includePDF: true // Include PDF attachment by default
       });
 
       if (result.data.success) {
@@ -94,7 +95,8 @@ class EmailService {
 
       const result = await this.sendInvoiceEmailFunction({
         invoiceId: data.invoiceId,
-        emailType: 'payment_reminder'
+        emailType: 'payment_reminder',
+        includePDF: true // Include PDF attachment
       });
 
       if (result.data.success) {

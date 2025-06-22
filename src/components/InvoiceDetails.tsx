@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Share2, Download, Copy, CheckCircle, Repeat, Calendar, Clock, ChevronDown, Bell } from 'lucide-react';
+import { X, Mail, Share2, Download, Copy, CheckCircle, Repeat, Calendar, Clock, ChevronDown, Bell, FileText } from 'lucide-react';
 import { Invoice } from '../hooks/useInvoices';
+import { pdfService } from '../services/pdfService';
 
 interface InvoiceDetailsProps {
   invoice: Invoice;
@@ -70,8 +71,18 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    console.log('Downloading invoice:', invoice.id);
+  const handleDownload = async () => {
+    try {
+      console.log('Downloading PDF for invoice:', invoice.id);
+      await pdfService.downloadInvoicePDF(
+        invoice,
+        'Billr User', // You can get this from auth context
+        'contact@billr.biz', // You can get this from auth context
+        'Billr'
+      );
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
   };
 
   const handleSendReminder = () => {
@@ -306,24 +317,25 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               )}
             </div>
 
-            {/* Scroll Indicator */}
-            {showScrollIndicator && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 text-brand-500 text-xs bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-brand-200/40"
-              >
-                <span>Scroll for more</span>
-                <motion.div
-                  animate={{ y: [0, 2, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <ChevronDown className="w-3 h-3" />
-                </motion.div>
-              </motion.div>
-            )}
           </div>
+
+          {/* Scroll Indicator - Fixed at bottom of modal */}
+          {showScrollIndicator && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute bottom-20 left-1/2 transform -translate-x-1/2 flex items-center gap-1 text-brand-500 text-xs bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full border border-brand-200/40 shadow-lg z-10"
+            >
+              <span>Scroll for more</span>
+              <motion.div
+                animate={{ y: [0, 2, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronDown className="w-3 h-3" />
+              </motion.div>
+            </motion.div>
+          )}
 
           {/* Fixed Footer */}
           <div className="flex items-center justify-end gap-3 p-6 border-t border-brand-200/40 bg-gradient-to-r from-brand-50/30 to-brand-100/30 backdrop-blur-sm flex-shrink-0">
@@ -331,8 +343,8 @@ export const InvoiceDetails: React.FC<InvoiceDetailsProps> = ({
               onClick={handleDownload}
               className="px-4 py-2 text-brand-600 hover:text-brand-900 hover:bg-brand-100/40 rounded-lg transition-all duration-200 flex items-center gap-2"
             >
-              <Download className="w-4 h-4" />
-              Download
+              <FileText className="w-4 h-4" />
+              Download PDF
             </button>
             
             {invoice.status !== 'paid' && onSendEmail && (

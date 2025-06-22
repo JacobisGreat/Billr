@@ -578,7 +578,26 @@ export const useInvoices = () => {
 
   // Mark invoice as paid
   const markAsPaid = async (invoiceId: string): Promise<void> => {
-    await updateInvoice(invoiceId, { status: 'paid' });
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (!invoice) throw new Error('Invoice not found');
+    
+    const now = new Date();
+    const dueDate = invoice.dueDate.toDate();
+    
+    // Use smart date logic: if due date is in the past, use due date as paid date
+    // Otherwise use current date to avoid future paid dates
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(now.getDate() - 1);
+    
+    const paidDate = dueDate <= oneDayAgo ? dueDate : now;
+    
+    await updateInvoice(invoiceId, { 
+      status: 'paid',
+      paidAt: Timestamp.fromDate(paidDate),
+      paidMethod: 'Cash/E-transfer'
+    });
+    
+    console.log('📅 Invoice marked as paid:', invoiceId, 'paid date:', paidDate);
   };
 
   // Mark invoice as overdue
