@@ -7,7 +7,6 @@
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat&logo=react&logoColor=white)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-10.8.0-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Stripe](https://img.shields.io/badge/Stripe-18.2.1-008CDD?style=flat&logo=stripe&logoColor=white)](https://stripe.com/)
 [![Vite](https://img.shields.io/badge/Vite-5.1.0-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.1-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
